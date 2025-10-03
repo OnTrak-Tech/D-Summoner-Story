@@ -8,8 +8,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { SummonerInput } from './components/SummonerInput';
 import { LoadingIndicator } from './components/LoadingIndicator';
 import { RecapViewer } from './components/RecapViewer';
-import { ThemeToggle } from './components/ThemeToggle';
-import { MobileMenu } from './components/MobileMenu';
+
 import { useRecapGeneration } from './hooks/useRecapGeneration';
 import { useRecapCache } from './hooks/useLocalStorage';
 import { apiService } from './services/api';
@@ -34,7 +33,7 @@ const App: React.FC = () => {
   // Cache recap data when completed
   useEffect(() => {
     if (recapData && step === 'completed') {
-      setCachedRecap(recapData);
+      setCachedRecap(recapData as any);
     }
   }, [recapData, step, setCachedRecap]);
 
@@ -166,14 +165,7 @@ const App: React.FC = () => {
     // Default state - show input form
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-purple-900 flex items-center justify-center p-4 transition-colors">
-        {/* Mobile Menu */}
-        <MobileMenu onRecentSearchSelect={handleSubmit} />
-        
         <div className="w-full max-w-6xl">
-          {/* Header with Theme Toggle */}
-          <div className="hidden md:flex justify-end mb-4">
-            <ThemeToggle />
-          </div>
           
           {/* Main Header */}
           <div className="text-center mb-8">
@@ -224,7 +216,7 @@ const App: React.FC = () => {
                     🎮 Previous Recap Available
                   </h3>
                   <p className="text-sm text-blue-700 dark:text-blue-300">
-                    {cachedRecap.summoner_name}'s year in review from {cachedRecap.region.toUpperCase()}
+                    {(cachedRecap as any)?.summoner_name}'s year in review from {(cachedRecap as any)?.region?.toUpperCase()}
                   </p>
                 </div>
                 <button
