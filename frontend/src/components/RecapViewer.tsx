@@ -5,6 +5,8 @@
 
 import React, { useState } from 'react';
 import { RecapData } from '../services/api';
+import { StatisticsCharts } from './StatisticsCharts';
+import { ShareModal } from './ShareModal';
 
 interface RecapViewerProps {
   recapData: RecapData;
@@ -60,7 +62,8 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
   onShare,
   onStartNew,
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'achievements'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'charts' | 'achievements'>('overview');
+  const [showShareModal, setShowShareModal] = useState(false);
   
   const { statistics, narrative, highlights, achievements, fun_facts, recommendations } = recapData;
 
@@ -106,6 +109,7 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
           {[
             { key: 'overview', label: 'Overview', icon: '📊' },
             { key: 'stats', label: 'Statistics', icon: '📈' },
+            { key: 'charts', label: 'Charts', icon: '📊' },
             { key: 'achievements', label: 'Achievements', icon: '🏆' },
           ].map(({ key, label, icon }) => (
             <button
@@ -197,6 +201,16 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Charts Tab */}
+        {activeTab === 'charts' && (
+          <div className="p-6">
+            <StatisticsCharts
+              visualizations={recapData.visualizations || []}
+              statistics={statistics}
+            />
           </div>
         )}
 
@@ -384,15 +398,13 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
         {/* Action Buttons */}
         <div className="p-6 border-t bg-gray-50 rounded-b-lg">
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            {onShare && (
-              <button
-                onClick={onShare}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center"
-              >
-                <span className="mr-2">📤</span>
-                Share My Year in Review
-              </button>
-            )}
+            <button
+              onClick={() => setShowShareModal(true)}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center"
+            >
+              <span className="mr-2">📤</span>
+              Share My Year in Review
+            </button>
             {onStartNew && (
               <button
                 onClick={onStartNew}
@@ -404,6 +416,14 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
             )}
           </div>
         </div>
+
+        {/* Share Modal */}
+        <ShareModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          recapData={recapData}
+          shareUrl={recapData.share_url}
+        />
       </div>
     </div>
   );

@@ -3,12 +3,15 @@
  * Orchestrates the complete user flow from input to recap display.
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { SummonerInput } from './components/SummonerInput';
 import { LoadingIndicator } from './components/LoadingIndicator';
 import { RecapViewer } from './components/RecapViewer';
+import { ThemeToggle } from './components/ThemeToggle';
+import { MobileMenu } from './components/MobileMenu';
 import { useRecapGeneration } from './hooks/useRecapGeneration';
+import { useRecapCache } from './hooks/useLocalStorage';
 import { apiService } from './services/api';
 
 const App: React.FC = () => {
@@ -25,6 +28,15 @@ const App: React.FC = () => {
     reset,
     retry,
   } = useRecapGeneration();
+
+  const { storedValue: cachedRecap, setValue: setCachedRecap } = useRecapCache();
+
+  // Cache recap data when completed
+  useEffect(() => {
+    if (recapData && step === 'completed') {
+      setCachedRecap(recapData);
+    }
+  }, [recapData, step, setCachedRecap]);
 
   const handleSubmit = useCallback((summonerName: string, region: string) => {
     startGeneration(summonerName, region);
@@ -153,47 +165,80 @@ const App: React.FC = () => {
 
     // Default state - show input form
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-purple-900 flex items-center justify-center p-4 transition-colors">
+        {/* Mobile Menu */}
+        <MobileMenu onRecentSearchSelect={handleSubmit} />
+        
         <div className="w-full max-w-6xl">
-          {/* Header */}
+          {/* Header with Theme Toggle */}
+          <div className="hidden md:flex justify-end mb-4">
+            <ThemeToggle />
+          </div>
+          
+          {/* Main Header */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-4">
+            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white mb-4">
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 D-Summoner-Story
               </span>
             </h1>
-            <p className="text-xl text-gray-600 mb-2">
+            <p className="text-xl text-gray-600 dark:text-gray-300 mb-2">
               Your League of Legends Year in Review
             </p>
-            <p className="text-gray-500">
+            <p className="text-gray-500 dark:text-gray-400">
               Discover your gaming journey with AI-powered insights
             </p>
           </div>
 
           {/* Features */}
           <div className="grid md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 transition-colors">
               <div className="text-3xl mb-3">📊</div>
-              <h3 className="font-semibold text-gray-900 mb-2">Performance Analytics</h3>
-              <p className="text-sm text-gray-600">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Performance Analytics</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 Deep dive into your KDA, win rates, and champion performance
               </p>
             </div>
-            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 transition-colors">
               <div className="text-3xl mb-3">🤖</div>
-              <h3 className="font-semibold text-gray-900 mb-2">AI-Powered Insights</h3>
-              <p className="text-sm text-gray-600">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">AI-Powered Insights</h3>
+              <p className="text-sm text-gray-300 dark:text-gray-300">
                 Get personalized narratives about your gaming journey
               </p>
             </div>
-            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 transition-colors">
               <div className="text-3xl mb-3">📈</div>
-              <h3 className="font-semibold text-gray-900 mb-2">Trend Analysis</h3>
-              <p className="text-sm text-gray-600">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Trend Analysis</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 See how your skills evolved throughout the year
               </p>
             </div>
           </div>
+
+          {/* Cached Recap Quick Access */}
+          {cachedRecap && step === 'idle' && (
+            <div className="mb-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-blue-900 dark:text-blue-100">
+                    🎮 Previous Recap Available
+                  </h3>
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    {cachedRecap.summoner_name}'s year in review from {cachedRecap.region.toUpperCase()}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    // You could implement a way to load cached recap here
+                    console.log('Load cached recap:', cachedRecap);
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                >
+                  View Previous
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Input Form */}
           <SummonerInput
@@ -203,9 +248,15 @@ const App: React.FC = () => {
 
           {/* Footer */}
           <div className="text-center mt-8">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               Powered by Riot Games API • Built with ❤️ for the League community
             </p>
+            <div className="mt-2 flex justify-center gap-4 text-xs text-gray-400 dark:text-gray-500">
+              <span>🔒 Secure</span>
+              <span>⚡ Fast</span>
+              <span>🤖 AI-Powered</span>
+              <span>📱 Mobile-Friendly</span>
+            </div>
           </div>
         </div>
       </div>

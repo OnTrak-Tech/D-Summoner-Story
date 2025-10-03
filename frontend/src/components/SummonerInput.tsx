@@ -3,8 +3,9 @@
  * Includes form validation, region selection, and loading states.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { isValidRegion, formatRegionDisplay, sanitizeSummonerName } from '../services/api';
+import { useRecentSearches, useUserPreferences } from '../hooks/useLocalStorage';
 
 interface SummonerInputProps {
   onSubmit: (summonerName: string, region: string) => void;
@@ -40,13 +41,17 @@ export const SummonerInput: React.FC<SummonerInputProps> = ({
   initialSummonerName = '',
   initialRegion = 'na1',
 }) => {
-  const [summonerName, setSummonerName] = useState(initialSummonerName);
-  const [region, setRegion] = useState(initialRegion);
+  const { storedValue: recentSearches, setValue: setRecentSearches } = useRecentSearches();
+  const { storedValue: preferences, setValue: setPreferences } = useUserPreferences();
+  
+  const [summonerName, setSummonerName] = useState(initialSummonerName || preferences.lastSummonerName);
+  const [region, setRegion] = useState(initialRegion || preferences.region);
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<{ summonerName: boolean; region: boolean }>({
     summonerName: false,
     region: false,
   });
+  const [showRecentSearches, setShowRecentSearches] = useState(false);
 
   const validateSummonerName = useCallback((name: string): string | undefined => {
     const trimmed = name.trim();
@@ -143,9 +148,39 @@ export const SummonerInput: React.FC<SummonerInputProps> = ({
     
     if (validateForm()) {
       const sanitizedName = sanitizeSummonerName(summonerName);
+      
+      // Save to recent searches
+      const newSearch = {
+        summonerName: sanitizedName,
+        region,
+        timestamp: Date.now(),
+      };
+      
+      const updatedSearches = [
+        newSearch,
+        ...recentSearches.filter(
+          search => !(search.summonerName === sanitizedName && search.region === region)
+        )
+      ].slice(0, 5); // Keep only 5 recent searches
+      
+      setRecentSearches(updatedSearches);
+      
+      // Update preferences
+      setPreferences({
+        ...preferences,
+        lastSummonerName: sanitizedName,
+        region,
+      });
+      
       onSubmit(sanitizedName, region);
     }
-  }, [summonerName, region, validateForm, onSubmit]);
+  }, [summonerName, region, validateForm, onSubmit, recentSearches, setRecentSearches, preferences, setPreferences]);
+
+  const handleRecentSearchClick = useCallback((search: typeof recentSearches[0]) => {
+    setSummonerName(search.summonerName);
+    setRegion(search.region);
+    setShowRecentSearches(false);
+  }, []);
 
   const isFormDisabled = isLoading || disabled;
 
@@ -163,31 +198,66 @@ export const SummonerInput: React.FC<SummonerInputProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Summoner Name Input */}
-          <div>
+          <div className="relative">
             <label 
               htmlFor="summoner-name" 
               className="block text-sm font-medium text-gray-700 mb-1"
             >
               Summoner Name
             </label>
-            <input
-              id="summoner-name"
-              type="text"
-              value={summonerName}
-              onChange={handleSummonerNameChange}
-              onBlur={handleSummonerNameBlur}
-              disabled={isFormDisabled}
-              placeholder="Enter your summoner name"
-              className={`
-                w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400
-                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed
-                ${errors.summonerName 
-                  ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-                  : 'border-gray-300'
-                }
-              `}
-            />
+            <div className="relative">
+              <input
+                id="summoner-name"
+                type="text"
+                value={summonerName}
+                onChange={handleSummonerNameChange}
+                onBlur={handleSummonerNameBlur}
+                onFocus={() => setShowRecentSearches(recentSearches.length > 0)}
+                disabled={isFormDisabled}
+                placeholder="Enter your summoner name"
+                className={`
+                  w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400
+                  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                  disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed
+                  ${errors.summonerName 
+                    ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
+                    : 'border-gray-300'
+                  }
+                `}
+              />
+              {recentSearches.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowRecentSearches(!showRecentSearches)}
+                  className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
+                >
+                  🕒
+                </button>
+              )}
+            </div>
+            
+            {/* Recent Searches Dropdown */}
+            {showRecentSearches && recentSearches.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+                <div className="py-1">
+                  <div className="px-3 py-2 text-xs font-medium text-gray-500 bg-gray-50">
+                    Recent Searches
+                  </div>
+                  {recentSearches.map((search, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => handleRecentSearchClick(search)}
+                      className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center justify-between"
+                    >
+                      <span className="text-gray-900">{search.summonerName}</span>
+                      <span className="text-xs text-gray-500">{search.region.toUpperCase()}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             {errors.summonerName && (
               <p className="mt-1 text-sm text-red-600" role="alert">
                 {errors.summonerName}

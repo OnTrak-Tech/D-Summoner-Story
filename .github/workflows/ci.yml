@@ -32,8 +32,9 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}-${{ github.run_id }}
           restore-keys: |
+            ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
             ${{ runner.os }}-pip-
       
       - name: Install dependencies
@@ -79,9 +80,9 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: frontend-build
+          name: frontend-build-${{ github.run_id }}
           path: frontend/dist/
-          retention-days: 7
+          retention-days: 1
 
   security-scan:
     name: Security Scan
@@ -264,10 +265,83 @@ jobs:
           chmod +x validate-setup.sh
           ./validate-setup.sh prod ${{ env.AWS_REGION }}
 
+  cleanup-cache:
+    name: Cleanup Cache
+    if: always() && github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [deploy-infrastructure, deploy-frontend, post-deploy-tests]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Cleanup old caches
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const caches = await github.rest.actions.getActionsCacheList({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+            
+            // Keep only the 5 most recent caches per key pattern
+            const cacheGroups = {};
+            caches.data.actions_caches.forEach(cache => {
+              const baseKey = cache.key.split('-').slice(0, -1).join('-');
+              if (!cacheGroups[baseKey]) cacheGroups[baseKey] = [];
+              cacheGroups[baseKey].push(cache);
+            });
+            
+            for (const [baseKey, cachesInGroup] of Object.entries(cacheGroups)) {
+              // Sort by created_at descending and keep only 5 most recent
+              cachesInGroup.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+              const cachesToDelete = cachesInGroup.slice(5);
+              
+              for (const cache of cachesToDelete) {
+                try {
+                  await github.rest.actions.deleteActionsCacheById({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    cache_id: cache.id
+                  });
+                  console.log(`Deleted cache: ${cache.key}`);
+                } catch (error) {
+                  console.log(`Failed to delete cache ${cache.key}: ${error.message}`);
+                }
+              }
+            }
+      
+      - name: Cleanup old artifacts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const artifacts = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+            
+            // Delete artifacts older than 3 days
+            const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+            
+            for (const artifact of artifacts.data.artifacts) {
+              const createdAt = new Date(artifact.created_at);
+              if (createdAt < threeDaysAgo) {
+                try {
+                  await github.rest.actions.deleteArtifact({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    artifact_id: artifact.id
+                  });
+                  console.log(`Deleted artifact: ${artifact.name}`);
+                } catch (error) {
+                  console.log(`Failed to delete artifact ${artifact.name}: ${error.message}`);
+                }
+              }
+            }
+
   notify-deployment:
     name: Notify Deployment Status
     if: always() && github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: [deploy-infrastructure, deploy-frontend, post-deploy-tests]
+    needs: [deploy-infrastructure, deploy-frontend, post-deploy-tests, cleanup-cache]
     runs-on: ubuntu-latest
     
     steps:
@@ -282,4 +356,4 @@ jobs:
         if: needs.deploy-infrastructure.result == 'failure' || needs.deploy-frontend.result == 'failure'
         run: |
           echo "❌ Deployment failed!"
-          echo "Check the logs for 
+          echo "Check the logs for details" 
