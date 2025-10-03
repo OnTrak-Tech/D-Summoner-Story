@@ -45,8 +45,7 @@ module "ddb_player_stats" {
   range_key                 = "SK"
   attributes                = [
     { name = "PK",  type = "S" },
-    { name = "SK",  type = "S" },
-    { name = "ttl", type = "N" }
+    { name = "SK",  type = "S" }
   ]
   ttl_enabled               = true
   ttl_attribute_name        = "ttl"
@@ -60,8 +59,7 @@ module "ddb_processing_jobs" {
   table_name                = "${local.name_prefix}-processing-jobs"
   hash_key                  = "PK"
   attributes                = [
-    { name = "PK",  type = "S" },
-    { name = "ttl", type = "N" }
+    { name = "PK",  type = "S" }
   ]
   ttl_enabled               = true
   ttl_attribute_name        = "ttl"
