@@ -36,6 +36,17 @@ terraform import module.lambda_recap_server.aws_iam_role.this "d-summoner-story-
 # Import IAM policies
 echo "Importing IAM policies..."
 terraform import aws_iam_policy.lambda_bedrock "arn:aws:iam::$(aws sts get-caller-identity --query Account --output text):policy/d-summoner-story-${ENVIRONMENT}-lambda-bedrock" || echo "Already imported or doesn't exist"
+terraform import aws_iam_policy.lambda_dynamodb "arn:aws:iam::$(aws sts get-caller-identity --query Account --output text):policy/d-summoner-story-${ENVIRONMENT}-lambda-dynamodb" || echo "Already imported or doesn't exist"
+terraform import aws_iam_policy.lambda_s3 "arn:aws:iam::$(aws sts get-caller-identity --query Account --output text):policy/d-summoner-story-${ENVIRONMENT}-lambda-s3" || echo "Already imported or doesn't exist"
+terraform import aws_iam_policy.lambda_secrets "arn:aws:iam::$(aws sts get-caller-identity --query Account --output text):policy/d-summoner-story-${ENVIRONMENT}-lambda-secrets" || echo "Already imported or doesn't exist"
+
+# Import Lambda functions
+echo "Importing Lambda functions..."
+terraform import module.lambda_auth.aws_lambda_function.this "d-summoner-story-${ENVIRONMENT}-auth" || echo "Already imported or doesn't exist"
+terraform import module.lambda_data_fetcher.aws_lambda_function.this "d-summoner-story-${ENVIRONMENT}-data-fetcher" || echo "Already imported or doesn't exist"
+terraform import module.lambda_data_processor.aws_lambda_function.this "d-summoner-story-${ENVIRONMENT}-data-processor" || echo "Already imported or doesn't exist"
+terraform import module.lambda_insight_generator.aws_lambda_function.this "d-summoner-story-${ENVIRONMENT}-insight-generator" || echo "Already imported or doesn't exist"
+terraform import module.lambda_recap_server.aws_lambda_function.this "d-summoner-story-${ENVIRONMENT}-recap-server" || echo "Already imported or doesn't exist"
 
 # Import CloudFront OAC
 echo "Importing CloudFront Origin Access Control..."
