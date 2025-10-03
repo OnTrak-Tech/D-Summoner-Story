@@ -62,7 +62,8 @@ check_aws_config() {
     fi
     
     ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-    CURRENT_REGION=$(aws configure get region)
+    CURRENT_REGION=${AWS_REGION:-$(aws configure get region 2>/dev/null || echo "unknown")}
+
     
     print_success "AWS Account: $ACCOUNT_ID"
     print_success "AWS Region: $CURRENT_REGION"
