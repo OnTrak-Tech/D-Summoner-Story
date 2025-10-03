@@ -178,6 +178,12 @@ jobs:
       - name: Terraform Init
         run: terraform init
       
+      - name: Import existing resources
+        run: |
+          chmod +x import-existing-resources.sh
+          ./import-existing-resources.sh prod ${{ env.AWS_REGION }}
+        continue-on-error: true
+      
       - name: Terraform Validate
         run: terraform validate
       
