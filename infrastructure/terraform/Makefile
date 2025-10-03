@@ -209,3 +209,50 @@ dashboard: ## Open CloudWatch dashboard
 	else \
 		echo "$(RED)[ERROR]$(NC) Dashboard URL not found. Deploy infrastructure first."; \
 	fi
+
+validate: ## Validate infrastructure deployment
+	@echo "$(BLUE)[INFO]$(NC) Validating infrastructure for environment: $(ENV)"
+	@./validate-setup.sh $(ENV) $(REGION)
+
+bedrock-setup: ## Show Bedrock setup instructions
+	@echo "$(BLUE)[INFO]$(NC) Bedrock Setup Guide:"
+	@cat BEDROCK_SETUP.md
+
+bedrock-check: ## Check Bedrock model access
+	@echo "$(BLUE)[INFO]$(NC) Checking Bedrock model access in region: $(REGION)"
+	@aws bedrock list-foundation-models --region $(REGION) --query 'modelSummaries[?contains(modelId, `claude`)].{ModelId:modelId,Provider:providerName}' --output table || echo "$(RED)[ERROR]$(NC) Bedrock not available or no access"
+
+setup-alerts: ## Subscribe to SNS alerts
+	@if [ -z "$(EMAIL)" ]; then \
+		echo "$(RED)[ERROR]$(NC) Usage: make setup-alerts EMAIL=your-email@example.com"; \
+		exit 1; \
+	fi
+	@TOPIC_ARN=$$(terraform output -raw sns_alerts_topic_arn 2>/dev/null); \
+	if [ -n "$$TOPIC_ARN" ]; then \
+		aws sns subscribe --topic-arn "$$TOPIC_ARN" --protocol email --notification-endpoint "$(EMAIL)"; \
+		echo "$(GREEN)[SUCCESS]$(NC) Alert subscription created for $(EMAIL)"; \
+	else \
+		echo "$(RED)[ERROR]$(NC) SNS topic ARN not found. Deploy infrastructure first."; \
+	fi
+
+update-secret: ## Update Riot API key in Secrets Manager
+	@if [ -z "$(API_KEY)" ]; then \
+		echo "$(RED)[ERROR]$(NC) Usage: make update-secret API_KEY=your-riot-api-key"; \
+		exit 1; \
+	fi
+	@SECRET_ARN=$$(terraform output -raw riot_api_secret_arn 2>/dev/null); \
+	if [ -n "$$SECRET_ARN" ]; then \
+		aws secretsmanager update-secret --secret-id "$$SECRET_ARN" --secret-string '{"api_key":"$(API_KEY)"}'; \
+		echo "$(GREEN)[SUCCESS]$(NC) Riot API key updated"; \
+	else \
+		echo "$(RED)[ERROR]$(NC) Secret ARN not found. Deploy infrastructure first."; \
+	fi
+
+full-setup: deploy validate bedrock-check ## Complete setup: deploy + validate + check Bedrock
+	@echo "$(GREEN)[SUCCESS]$(NC) Full setup completed for environment: $(ENV)"
+	@echo ""
+	@echo "Next steps:"
+	@echo "1. Request Bedrock model access: make bedrock-setup"
+	@echo "2. Update Riot API key: make update-secret API_KEY=your-key"
+	@echo "3. Subscribe to alerts: make setup-alerts EMAIL=your-email@example.com"
+	@echo "4. Deploy frontend application"

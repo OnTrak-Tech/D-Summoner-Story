@@ -123,25 +123,47 @@ Example: `d-summoner-story-dev-auth` for the auth Lambda function.
 
 ### Post-Deployment Configuration
 
-1. **Update Riot API Key in Secrets Manager**:
+1. **Validate Infrastructure**:
+   ```bash
+   ./validate-setup.sh dev us-east-1
+   ```
+
+2. **Set up Bedrock Model Access**:
+   ```bash
+   # Follow the detailed guide
+   cat BEDROCK_SETUP.md
+   
+   # Quick check for model availability
+   aws bedrock list-foundation-models --region us-east-1
+   ```
+
+3. **Update Riot API Key in Secrets Manager**:
    ```bash
    aws secretsmanager update-secret \
      --secret-id $(terraform output -raw riot_api_secret_arn) \
      --secret-string '{"api_key":"YOUR_RIOT_API_KEY_HERE"}'
    ```
 
-2. **Deploy frontend to S3**:
+4. **Deploy frontend to S3**:
    ```bash
    cd ../../frontend
    npm run build
    aws s3 sync dist/ s3://$(terraform output -raw static_website_bucket_name)/
    ```
 
-3. **Invalidate CloudFront cache**:
+5. **Invalidate CloudFront cache**:
    ```bash
    aws cloudfront create-invalidation \
      --distribution-id $(terraform output -raw cloudfront_distribution_id) \
      --paths "/*"
+   ```
+
+6. **Subscribe to monitoring alerts**:
+   ```bash
+   aws sns subscribe \
+     --topic-arn $(terraform output -raw sns_alerts_topic_arn) \
+     --protocol email \
+     --notification-endpoint your-email@example.com
    ```
 
 ### Environment Management
