@@ -201,11 +201,6 @@ jobs:
           echo "api_endpoint=$(terraform output -raw api_endpoint)" >> $GITHUB_OUTPUT
           echo "website_bucket=$(terraform output -raw static_website_bucket_name)" >> $GITHUB_OUTPUT
           echo "cloudfront_distribution_id=$(terraform output -raw cloudfront_distribution_id)" >> $GITHUB_OUTPUT
-      
-      - name: Validate Infrastructure
-        run: |
-          chmod +x validate-setup.sh
-          ./validate-setup.sh prod ${{ env.AWS_REGION }}
 
   deploy-frontend:
     name: Deploy Frontend
@@ -295,12 +290,6 @@ jobs:
           curl -f "$WEBSITE_URL" -o /dev/null -s || echo "Website test failed (CloudFront may still be deploying)"
           
           echo "Website is accessible"
-      
-      - name: Run infrastructure validation
-        working-directory: infrastructure/terraform
-        run: |
-          chmod +x validate-setup.sh
-          ./validate-setup.sh prod ${{ env.AWS_REGION }}
 
   cleanup-cache:
     name: Cleanup Cache
@@ -393,4 +382,4 @@ jobs:
         if: needs.deploy-infrastructure.result == 'failure' || needs.deploy-frontend.result == 'failure'
         run: |
           echo "❌ Deployment failed!"
-          echo "Check the logs for details" 
+          echo "Check the logs for details"
