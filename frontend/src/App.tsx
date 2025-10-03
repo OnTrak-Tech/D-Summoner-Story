@@ -10,7 +10,7 @@ import { LoadingIndicator } from './components/LoadingIndicator';
 import { RecapViewer } from './components/RecapViewer';
 
 import { useRecapGeneration } from './hooks/useRecapGeneration';
-import { useRecapCache } from './hooks/useLocalStorage';
+
 import { apiService } from './services/api';
 
 const App: React.FC = () => {
@@ -28,14 +28,7 @@ const App: React.FC = () => {
     retry,
   } = useRecapGeneration();
 
-  const { storedValue: cachedRecap, setValue: setCachedRecap } = useRecapCache();
 
-  // Cache recap data when completed
-  useEffect(() => {
-    if (recapData && step === 'completed') {
-      setCachedRecap(recapData as any);
-    }
-  }, [recapData, step, setCachedRecap]);
 
   const handleSubmit = useCallback((summonerName: string, region: string) => {
     startGeneration(summonerName, region);
@@ -207,30 +200,7 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Cached Recap Quick Access */}
-          {cachedRecap && step === 'idle' && (
-            <div className="mb-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-blue-900 dark:text-blue-100">
-                    🎮 Previous Recap Available
-                  </h3>
-                  <p className="text-sm text-blue-700 dark:text-blue-300">
-                    {(cachedRecap as any)?.summoner_name}'s year in review from {(cachedRecap as any)?.region?.toUpperCase()}
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    // You could implement a way to load cached recap here
-                    console.log('Load cached recap:', cachedRecap);
-                  }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                >
-                  View Previous
-                </button>
-              </div>
-            </div>
-          )}
+
 
           {/* Input Form */}
           <SummonerInput
