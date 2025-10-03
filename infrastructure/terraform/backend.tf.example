@@ -1,0 +1,26 @@
+# Example backend configuration for remote state management
+# Rename this file to backend.tf and update the values after creating the S3 bucket and DynamoDB table
+
+terraform {
+  backend "s3" {
+    bucket         = "your-terraform-state-bucket"
+    key            = "d-summoner-story/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "terraform-state-locks"
+    encrypt        = true
+  }
+}
+
+# To set up the backend resources, run these AWS CLI commands first:
+#
+# aws s3 mb s3://your-terraform-state-bucket --region us-east-1
+# 
+# aws dynamodb create-table \
+#   --table-name terraform-state-locks \
+#   --attribute-definitions AttributeName=LockID,AttributeType=S \
+#   --key-schema AttributeName=LockID,KeyType=HASH \
+#   --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 \
+#   --region us-east-1
+#
+# Then rename this file to backend.tf and run:
+# terraform init -migrate-state

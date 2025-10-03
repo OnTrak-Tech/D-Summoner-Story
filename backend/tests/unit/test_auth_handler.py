@@ -1,0 +1,195 @@
+"""
+Unit tests for the auth_handler Lambda function.
+Tests authentication logic, input validation, and response formatting.
+"""
+
+import json
+import pytest
+from unittest.mock import patch, MagicMock
+
+# Import the handler
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'src', 'lambdas'))
+
+from auth_handler import handler, AuthRequest, AuthResponse
+
+
+class TestAuthHandler:
+    """Test cases for auth_handler Lambda function"""
+    
+    def test_valid_auth_request(self):
+        """Test successful authentication with valid input"""
+        event = {
+            "body": json.dumps({
+                "summoner_name": "TestSummoner",
+                "region": "na1"
+            })
+        }
+        context = {}
+        
+        response = handler(event, context)
+        
+        assert response["statusCode"] == 200
+        
+        body = json.loads(response["body"])
+        assert "session_id" in body
+        assert body["status"] == "valid"
+        assert len(body["session_id"]) > 0
+    
+    def test_missing_summoner_name(self):
+        """Test authentication with missing summoner name"""
+        event = {
+            "body": json.dumps({
+                "region": "na1"
+            })
+        }
+        context = {}
+        
+        response = handler(event, context)
+        
+        assert response["statusCode"] == 400
+        
+        body = json.loads(response["body"])
+        assert "summoner_name and region are required" in body["message"]
+    
+    def test_missing_region(self):
+        """Test authentication with missing region"""
+        event = {
+            "body": json.dumps({
+                "summoner_name": "TestSummoner"
+            })
+        }
+        context = {}
+        
+        response = handler(event, context)
+        
+        assert response["statusCode"] == 400
+        
+        body = json.loads(response["body"])
+        assert "summoner_name and region are required" in body["message"]
+    
+    def test_empty_summoner_name(self):
+        """Test authentication with empty summoner name"""
+        event = {
+            "body": json.dumps({
+                "summoner_name": "   ",
+                "region": "na1"
+            })
+        }
+        context = {}
+        
+        response = handler(event, context)
+        
+        assert response["statusCode"] == 400
+    
+    def test_empty_region(self):
+        """Test authentication with empty region"""
+        event = {
+            "body": json.dumps({
+                "summoner_name": "TestSummoner",
+                "region": "   "
+            })
+        }
+        context = {}
+        
+        response = handler(event, context)
+        
+        assert response["statusCode"] == 400
+    
+    def test_invalid_json_body(self):
+        """Test authentication with invalid JSON in body"""
+        event = {
+            "body": "invalid json"
+        }
+        context = {}
+        
+        response = handler(event, context)
+        
+        assert response["statusCode"] == 500
+        
+        body = json.loads(response["body"])
+        assert body["message"] == "Internal server error"
+    
+    def test_dict_body(self):
+        """Test authentication with dict body (not string)"""
+        event = {
+            "body": {
+                "summoner_name": "TestSummoner",
+                "region": "na1"
+            }
+        }
+        context = {}
+        
+        response = handler(event, context)
+        
+        assert response["statusCode"] == 200
+        
+        body = json.loads(response["body"])
+        assert body["status"] == "valid"
+    
+    def test_no_body(self):
+        """Test authentication with no body"""
+        event = {}
+        context = {}
+        
+        response = handler(event, context)
+        
+        assert response["statusCode"] == 400
+    
+    def test_response_headers(self):
+        """Test that response includes proper headers"""
+        event = {
+            "body": json.dumps({
+                "summoner_name": "TestSummoner",
+                "region": "na1"
+            })
+        }
+        context = {}
+        
+        response = handler(event, context)
+        
+        assert "headers" in response
+        assert response["headers"]["Content-Type"] == "application/json"
+    
+    def test_session_id_uniqueness(self):
+        """Test that multiple requests generate unique session IDs"""
+        event = {
+            "body": json.dumps({
+                "summoner_name": "TestSummoner",
+                "region": "na1"
+            })
+        }
+        context = {}
+        
+        response1 = handler(event, context)
+        response2 = handler(event, context)
+        
+        body1 = json.loads(response1["body"])
+        body2 = json.loads(response2["body"])
+        
+        assert body1["session_id"] != body2["session_id"]
+    
+    def test_auth_request_dataclass(self):
+        """Test AuthRequest dataclass"""
+        auth_request = AuthRequest(
+            summoner_name="TestSummoner",
+            region="na1"
+        )
+        
+        assert auth_request.summoner_name == "TestSummoner"
+        assert auth_request.region == "na1"
+    
+    def test_auth_response_dataclass(self):
+        """Test AuthResponse dataclass"""
+        auth_response = AuthResponse(
+            session_id="test-session-id",
+            status="valid"
+        )
+        
+        assert auth_response.session_id == "test-session-id"
+        assert auth_response.status == "valid"
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])
