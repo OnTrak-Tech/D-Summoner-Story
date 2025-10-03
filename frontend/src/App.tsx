@@ -51,7 +51,7 @@ const App: React.FC = () => {
       // Try to use Web Share API if available
       if (navigator.share) {
         await navigator.share({
-          title: `${recapData.summoner_name}'s League of Legends Year in Review`,
+          title: `${recapData?.summoner_name || 'Player'}'s League of Legends Year in Review`,
           text: shareResponse.preview_text,
           url: shareResponse.share_url,
         });
@@ -63,7 +63,7 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Failed to share:', error);
       // Fallback sharing method
-      const shareText = `Check out ${recapData.summoner_name}'s League of Legends Year in Review! ${recapData.statistics.win_rate.toFixed(1)}% win rate with ${recapData.statistics.avg_kda.toFixed(2)} KDA!`;
+      const shareText = `Check out ${recapData?.summoner_name || 'Player'}'s League of Legends Year in Review! ${recapData?.statistics?.win_rate?.toFixed(1) || 0}% win rate with ${recapData?.statistics?.avg_kda?.toFixed(2) || 0} KDA!`;
       
       if (navigator.clipboard) {
         try {

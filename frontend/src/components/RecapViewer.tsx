@@ -239,19 +239,19 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
                 />
                 <StatCard
                   title="Total Kills"
-                  value={statistics.total_kills || 0}
+                  value={(statistics as any).total_kills || 0}
                   subtitle={`${(statistics.avg_kills || 0).toFixed(1)} avg`}
                   color="purple"
                 />
                 <StatCard
                   title="Total Deaths"
-                  value={statistics.total_deaths || 0}
+                  value={(statistics as any).total_deaths || 0}
                   subtitle={`${(statistics.avg_deaths || 0).toFixed(1)} avg`}
                   color="red"
                 />
                 <StatCard
                   title="Total Assists"
-                  value={statistics.total_assists || 0}
+                  value={(statistics as any).total_assists || 0}
                   subtitle={`${(statistics.avg_assists || 0).toFixed(1)} avg`}
                   color="blue"
                 />
@@ -318,7 +318,7 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
                             {month.month} {month.year}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {month.games || 0}
+                            {(month as any).games || 0}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {formatWinRate(month.win_rate)}

@@ -325,7 +325,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
           </div>
 
           {/* Native Share (Mobile) */}
-          {navigator.share && (
+          {navigator.share && typeof navigator.share === 'function' && (
             <div>
               <button
                 onClick={handleNativeShare}

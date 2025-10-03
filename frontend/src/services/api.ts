@@ -107,7 +107,7 @@ class APIService {
 
   constructor() {
     // Get API endpoint from environment or use default
-    this.baseURL = import.meta.env.VITE_API_ENDPOINT || 'https://your-api-gateway-url.execute-api.us-east-1.amazonaws.com';
+    this.baseURL = (import.meta.env?.VITE_API_ENDPOINT as string) || 'https://your-api-gateway-url.execute-api.us-east-1.amazonaws.com';
     this.timeout = 30000; // 30 seconds
   }
 
@@ -117,17 +117,22 @@ class APIService {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+    
     const config: RequestInit = {
-      timeout: this.timeout,
+      signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
       },
       ...options,
     };
-
+    
     try {
+
       const response = await fetch(url, config);
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         let errorData;
@@ -147,6 +152,7 @@ class APIService {
 
       return await response.json();
     } catch (error) {
+      clearTimeout(timeoutId);
       if (error instanceof APIError) {
         throw error;
       }
