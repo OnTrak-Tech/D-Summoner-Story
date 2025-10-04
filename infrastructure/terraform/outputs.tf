@@ -19,7 +19,7 @@ output "processing_jobs_table_name" {
 }
 
 output "api_endpoint" {
-  value = module.http_api.api_endpoint
+  value = "${module.http_api.api_endpoint}/${module.http_api.stage_name}"
 }
 
 output "cloudfront_distribution_id" {
