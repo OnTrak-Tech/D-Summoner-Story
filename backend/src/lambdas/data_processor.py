@@ -192,6 +192,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 ":status": "processing",
                 ":progress": 20,
                 ":updated_at": get_current_timestamp()
+            },
+            {
+                "#status": "status",
+                "#progress": "progress",
+                "#updated_at": "updated_at"
             }
         )
         
@@ -212,6 +217,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     {
                         ":status": "failed",
                         ":error": "No match data found to process"
+                    },
+                    {
+                        "#status": "status",
+                        "#error_message": "error_message"
                     }
                 )
                 
@@ -225,7 +234,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 processing_jobs_table,
                 {"PK": f"JOB#{request.job_id}"},
                 "SET #progress = :progress",
-                {":progress": 50}
+                {":progress": 50},
+                {"#progress": "progress"}
             )
             
             # Process matches into statistics
@@ -237,7 +247,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 processing_jobs_table,
                 {"PK": f"JOB#{request.job_id}"},
                 "SET #progress = :progress",
-                {":progress": 80}
+                {":progress": 80},
+                {"#progress": "progress"}
             )
             
             # Create player stats item for DynamoDB
@@ -255,6 +266,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     ":status": "completed",
                     ":progress": 100,
                     ":updated_at": get_current_timestamp()
+                },
+                {
+                    "#status": "status",
+                    "#progress": "progress",
+                    "#updated_at": "updated_at"
                 }
             )
             
@@ -285,6 +301,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 {
                     ":status": "failed",
                     ":error": str(e)
+                },
+                {
+                    "#status": "status",
+                    "#error_message": "error_message"
                 }
             )
             
