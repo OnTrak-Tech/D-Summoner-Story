@@ -21,17 +21,17 @@ interface FormErrors {
 }
 
 const REGIONS = [
-  { value: 'na1', label: 'North America' },
-  { value: 'euw1', label: 'Europe West' },
-  { value: 'eun1', label: 'Europe Nordic & East' },
-  { value: 'kr', label: 'Korea' },
-  { value: 'br1', label: 'Brazil' },
-  { value: 'la1', label: 'Latin America North' },
-  { value: 'la2', label: 'Latin America South' },
-  { value: 'oc1', label: 'Oceania' },
-  { value: 'ru', label: 'Russia' },
-  { value: 'tr1', label: 'Turkey' },
-  { value: 'jp1', label: 'Japan' },
+  { value: 'na1', label: 'North America', flag: '🇺🇸' },
+  { value: 'euw1', label: 'Europe West', flag: '🇪🇺' },
+  { value: 'eun1', label: 'Europe Nordic & East', flag: '🇪🇺' },
+  { value: 'kr', label: 'Korea', flag: '🇰🇷' },
+  { value: 'br1', label: 'Brazil', flag: '🇧🇷' },
+  { value: 'la1', label: 'Latin America North', flag: '🌎' },
+  { value: 'la2', label: 'Latin America South', flag: '🌎' },
+  { value: 'oc1', label: 'Oceania', flag: '🇦🇺' },
+  { value: 'ru', label: 'Russia', flag: '🇷🇺' },
+  { value: 'tr1', label: 'Turkey', flag: '🇹🇷' },
+  { value: 'jp1', label: 'Japan', flag: '🇯🇵' },
 ];
 
 export const SummonerInput: React.FC<SummonerInputProps> = ({
@@ -185,23 +185,26 @@ export const SummonerInput: React.FC<SummonerInputProps> = ({
   const isFormDisabled = isLoading || disabled;
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+    <div className="w-full">
+      <div className="bg-white/70 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-gradient-to-br from-amber-100 to-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl">✨</span>
+          </div>
+          <h2 className="text-3xl font-bold text-gray-800 mb-3">
             Get Your Year in Review
           </h2>
-          <p className="text-gray-600">
-            Enter your summoner name to see your League of Legends journey
+          <p className="text-gray-600 text-lg leading-relaxed">
+            Enter your summoner name to discover your League of Legends journey
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Summoner Name Input */}
           <div className="relative">
             <label 
               htmlFor="summoner-name" 
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-semibold text-gray-700 mb-2"
             >
               Summoner Name
             </label>
@@ -216,12 +219,13 @@ export const SummonerInput: React.FC<SummonerInputProps> = ({
                 disabled={isFormDisabled}
                 placeholder="Enter your summoner name"
                 className={`
-                  w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400
-                  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                  w-full px-4 py-4 border-2 rounded-2xl shadow-sm placeholder-gray-400 text-lg
+                  focus:outline-none focus:ring-4 focus:ring-orange-200 focus:border-orange-400
                   disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed
+                  transition-all duration-200
                   ${errors.summonerName 
-                    ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-                    : 'border-gray-300'
+                    ? 'border-red-300 focus:ring-red-200 focus:border-red-400' 
+                    : 'border-gray-200 hover:border-gray-300'
                   }
                 `}
               />
@@ -229,7 +233,7 @@ export const SummonerInput: React.FC<SummonerInputProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowRecentSearches(!showRecentSearches)}
-                  className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   🕒
                 </button>
@@ -238,9 +242,9 @@ export const SummonerInput: React.FC<SummonerInputProps> = ({
             
             {/* Recent Searches Dropdown */}
             {showRecentSearches && recentSearches.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
-                <div className="py-1">
-                  <div className="px-3 py-2 text-xs font-medium text-gray-500 bg-gray-50">
+              <div className="absolute z-10 w-full mt-2 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-2xl shadow-xl">
+                <div className="py-2">
+                  <div className="px-4 py-2 text-xs font-semibold text-gray-500 bg-gray-50/80 rounded-t-2xl">
                     Recent Searches
                   </div>
                   {recentSearches.map((search, index) => (
@@ -248,10 +252,12 @@ export const SummonerInput: React.FC<SummonerInputProps> = ({
                       key={index}
                       type="button"
                       onClick={() => handleRecentSearchClick(search)}
-                      className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center justify-between"
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50/80 flex items-center justify-between transition-colors"
                     >
-                      <span className="text-gray-900">{search.summonerName}</span>
-                      <span className="text-xs text-gray-500">{search.region.toUpperCase()}</span>
+                      <span className="text-gray-900 font-medium">{search.summonerName}</span>
+                      <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-lg">
+                        {search.region.toUpperCase()}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -259,7 +265,7 @@ export const SummonerInput: React.FC<SummonerInputProps> = ({
             )}
             
             {errors.summonerName && (
-              <p className="mt-1 text-sm text-red-600" role="alert">
+              <p className="mt-2 text-sm text-red-600 font-medium" role="alert">
                 {errors.summonerName}
               </p>
             )}
@@ -269,7 +275,7 @@ export const SummonerInput: React.FC<SummonerInputProps> = ({
           <div>
             <label 
               htmlFor="region" 
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-semibold text-gray-700 mb-2"
             >
               Region
             </label>
@@ -280,23 +286,24 @@ export const SummonerInput: React.FC<SummonerInputProps> = ({
               onBlur={handleRegionBlur}
               disabled={isFormDisabled}
               className={`
-                w-full px-3 py-2 border rounded-md shadow-sm
-                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                w-full px-4 py-4 border-2 rounded-2xl shadow-sm text-lg
+                focus:outline-none focus:ring-4 focus:ring-orange-200 focus:border-orange-400
                 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed
+                transition-all duration-200
                 ${errors.region 
-                  ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-                  : 'border-gray-300'
+                  ? 'border-red-300 focus:ring-red-200 focus:border-red-400' 
+                  : 'border-gray-200 hover:border-gray-300'
                 }
               `}
             >
-              {REGIONS.map(({ value, label }) => (
+              {REGIONS.map(({ value, label, flag }) => (
                 <option key={value} value={value}>
-                  {label}
+                  {flag} {label}
                 </option>
               ))}
             </select>
             {errors.region && (
-              <p className="mt-1 text-sm text-red-600" role="alert">
+              <p className="mt-2 text-sm text-red-600 font-medium" role="alert">
                 {errors.region}
               </p>
             )}
@@ -307,20 +314,20 @@ export const SummonerInput: React.FC<SummonerInputProps> = ({
             type="submit"
             disabled={isFormDisabled}
             className={`
-              w-full py-3 px-4 rounded-md font-medium text-white
-              focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
+              w-full py-4 px-6 rounded-2xl font-semibold text-lg text-white
+              focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-orange-300
               disabled:cursor-not-allowed disabled:opacity-50
-              transition-colors duration-200
+              transition-all duration-200 shadow-lg hover:shadow-xl
               ${isFormDisabled
                 ? 'bg-gray-400'
-                : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
+                : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:from-amber-700 active:to-orange-700'
               }
             `}
           >
             {isLoading ? (
               <div className="flex items-center justify-center">
                 <svg 
-                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" 
+                  className="animate-spin -ml-1 mr-3 h-6 w-6 text-white" 
                   xmlns="http://www.w3.org/2000/svg" 
                   fill="none" 
                   viewBox="0 0 24 24"
@@ -339,18 +346,21 @@ export const SummonerInput: React.FC<SummonerInputProps> = ({
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   />
                 </svg>
-                Processing...
+                Creating your story...
               </div>
             ) : (
-              'Generate My Year in Review'
+              <span className="flex items-center justify-center">
+                <span className="mr-2">✨</span>
+                Generate My Year in Review
+              </span>
             )}
           </button>
         </form>
 
         {/* Help Text */}
-        <div className="mt-4 text-center">
-          <p className="text-xs text-gray-500">
-            We'll analyze your ranked and normal games from the past year
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-500 leading-relaxed">
+            We'll analyze your ranked and normal games from the past year to create a beautiful, personalized story
           </p>
         </div>
       </div>
