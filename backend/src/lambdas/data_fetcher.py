@@ -83,7 +83,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         job_id = job.PK.split('#')[1]
         
         # Store initial job in DynamoDB
-        dynamodb_client.put_item(processing_jobs_table, asdict(job))
+        dynamodb_client.put_item(processing_jobs_table, job.model_dump())
+
         
         logger.info(f"Starting data fetch for {summoner_name} in {request.region}")
         
