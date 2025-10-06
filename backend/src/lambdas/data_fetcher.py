@@ -96,6 +96,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 ":status": "fetching",
                 ":progress": 10,
                 ":updated_at": get_current_timestamp()
+            },
+            {
+                "#status": "status",
+                "#progress": "progress",
+                "#updated_at": "updated_at"
             }
         )
         
@@ -109,7 +114,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 processing_jobs_table,
                 {"PK": job.PK},
                 "SET #progress = :progress",
-                {":progress": 30}
+                {":progress": 30},
+                {"#progress": "progress"}
             )
             
             # Step 2: Get match history
@@ -126,6 +132,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         ":status": "completed",
                         ":progress": 100,
                         ":error": "No match history found for the past 12 months"
+                    },
+                    {
+                        "#status": "status",
+                        "#progress": "progress",
+                        "#error_message": "error_message"
                     }
                 )
                 
@@ -145,7 +156,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 processing_jobs_table,
                 {"PK": job.PK},
                 "SET #progress = :progress",
-                {":progress": 70}
+                {":progress": 70},
+                {"#progress": "progress"}
             )
             
             # Step 3: Store raw data in S3
@@ -182,6 +194,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     ":status": "completed",
                     ":progress": 100,
                     ":updated_at": get_current_timestamp()
+                },
+                {
+                    "#status": "status",
+                    "#progress": "progress",
+                    "#updated_at": "updated_at"
                 }
             )
             
@@ -210,6 +227,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 {
                     ":status": "failed",
                     ":error": f"Summoner '{summoner_name}' not found in region '{request.region}'"
+                },
+                {
+                    "#status": "status",
+                    "#error_message": "error_message"
                 }
             )
             
@@ -227,6 +248,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 {
                     ":status": "failed",
                     ":error": str(e)
+                },
+                {
+                    "#status": "status",
+                    "#error_message": "error_message"
                 }
             )
             
@@ -250,6 +275,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     {
                         ":status": "failed",
                         ":error": f"Internal error: {str(e)}"
+                    },
+                    {
+                        "#status": "status",
+                        "#error_message": "error_message"
                     }
                 )
         except:

@@ -46,15 +46,21 @@ class DynamoDBClient:
             raise AWSClientError(f"DynamoDB get_item failed: {e}")
     
     def update_item(self, table_name: str, key: Dict[str, Any], 
-                   update_expression: str, expression_values: Dict[str, Any]) -> bool:
+                   update_expression: str, expression_values: Dict[str, Any],
+                   expression_names: Optional[Dict[str, str]] = None) -> bool:
         """Update item in DynamoDB table"""
         try:
             table = self.resource.Table(table_name)
-            table.update_item(
-                Key=key,
-                UpdateExpression=update_expression,
-                ExpressionAttributeValues=expression_values
-            )
+            update_params = {
+                "Key": key,
+                "UpdateExpression": update_expression,
+                "ExpressionAttributeValues": expression_values
+            }
+            
+            if expression_names:
+                update_params["ExpressionAttributeNames"] = expression_names
+                
+            table.update_item(**update_params)
             return True
         except ClientError as e:
             logger.error(f"Failed to update item in {table_name}: {e}")
