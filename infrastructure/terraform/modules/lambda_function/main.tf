@@ -41,6 +41,7 @@ resource "aws_lambda_function" "this" {
   runtime       = var.runtime
   memory_size   = var.memory_size
   timeout       = var.timeout
+  layers        = var.layers
 
   filename         = data.archive_file.zip.output_path
   source_code_hash = data.archive_file.zip.output_base64sha256

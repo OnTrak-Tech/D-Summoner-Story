@@ -54,3 +54,9 @@ variable "attach_basic_execution_role" {
   description = "Attach AWSLambdaBasicExecutionRole managed policy"
   default     = true
 }
+
+variable "layers" {
+  type        = list(string)
+  description = "Lambda layer ARNs"
+  default     = []
+}

@@ -199,6 +199,26 @@ resource "aws_iam_policy" "lambda_bedrock" {
 }
 
 ###############################################
+# Lambda Layer for Shared Modules
+###############################################
+
+# Lambda Layer for shared modules
+data "archive_file" "shared_layer" {
+  type        = "zip"
+  source_dir  = "${path.root}/../../backend/src/shared"
+  output_path = "${path.module}/build/shared-layer.zip"
+}
+
+resource "aws_lambda_layer_version" "shared" {
+  filename         = data.archive_file.shared_layer.output_path
+  layer_name       = "${local.name_prefix}-shared"
+  source_code_hash = data.archive_file.shared_layer.output_base64sha256
+  
+  compatible_runtimes = ["python3.12"]
+  description         = "Shared modules for League of Legends recap Lambda functions"
+}
+
+###############################################
 # Lambda Functions
 ###############################################
 
@@ -210,6 +230,7 @@ module "lambda_auth" {
   runtime       = "python3.12"
   timeout       = 10
   memory_size   = 256
+  layers        = [aws_lambda_layer_version.shared.arn]
   environment   = {
     LOG_LEVEL                = "INFO"
     PLAYER_STATS_TABLE       = module.ddb_player_stats.table_name
@@ -228,6 +249,7 @@ module "lambda_data_fetcher" {
   runtime       = "python3.12"
   timeout       = 300
   memory_size   = 512
+  layers        = [aws_lambda_layer_version.shared.arn]
   environment   = {
     LOG_LEVEL                = "INFO"
     RAW_DATA_BUCKET          = module.s3_raw_data.bucket_name
@@ -249,6 +271,7 @@ module "lambda_data_processor" {
   runtime       = "python3.12"
   timeout       = 300
   memory_size   = 1024
+  layers        = [aws_lambda_layer_version.shared.arn]
   environment   = {
     LOG_LEVEL                = "INFO"
     RAW_DATA_BUCKET          = module.s3_raw_data.bucket_name
@@ -269,6 +292,7 @@ module "lambda_insight_generator" {
   runtime       = "python3.12"
   timeout       = 180
   memory_size   = 512
+  layers        = [aws_lambda_layer_version.shared.arn]
   environment   = {
     LOG_LEVEL                = "INFO"
     PLAYER_STATS_TABLE       = module.ddb_player_stats.table_name
@@ -290,6 +314,7 @@ module "lambda_recap_server" {
   runtime       = "python3.12"
   timeout       = 30
   memory_size   = 256
+  layers        = [aws_lambda_layer_version.shared.arn]
   environment   = {
     LOG_LEVEL                = "INFO"
     PLAYER_STATS_TABLE       = module.ddb_player_stats.table_name
