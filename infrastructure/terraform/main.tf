@@ -205,7 +205,7 @@ resource "aws_iam_policy" "lambda_bedrock" {
 # Lambda Layer for shared modules
 data "archive_file" "shared_layer" {
   type        = "zip"
-  source_dir  = "${path.root}/../../backend/src/shared"
+  source_dir  = "${path.module}/layer"
   output_path = "${path.module}/build/shared-layer.zip"
 }
 
