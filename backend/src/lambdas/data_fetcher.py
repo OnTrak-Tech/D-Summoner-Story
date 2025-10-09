@@ -121,7 +121,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
             # Step 2: Get match history
             logger.info(f"Fetching match history for {summoner.name}")
-            matches = riot_client.get_full_match_history(summoner, request.region, months_back=12)
+            matches = riot_client.get_full_match_history(summoner, request.region, months_back=1)
             
             if not matches:
                 # Update job as completed with insufficient data
@@ -132,7 +132,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     {
                         ":status": "completed",
                         ":progress": 100,
-                        ":error": "No match history found for the past 12 months"
+                        ":error": "No match history found for the past 1 month"
                     },
                     {
                         "#status": "status",
