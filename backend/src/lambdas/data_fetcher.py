@@ -119,7 +119,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 {"#progress": "progress"}
             )
             
-            # Step 2: Get match history
+            # Step 2: Get match history (reduced for dev API key limits)
             logger.info(f"Fetching match history for {summoner.name}")
             matches = riot_client.get_full_match_history(summoner, request.region, months_back=1)
             

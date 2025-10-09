@@ -153,18 +153,23 @@ class SecretsManagerClient:
             logger.error(f"Failed to get secret {secret_arn}: {e}")
             raise AWSClientError(f"Secrets Manager get_secret failed: {e}")
     
-    def get_riot_api_key(self) -> str:
+    def get_riot_api_key(self, force_refresh: bool = False) -> str:
         """Get Riot Games API key from secrets"""
         secret_arn = os.environ.get('RIOT_API_SECRET_ARN')
         if not secret_arn:
             raise AWSClientError("RIOT_API_SECRET_ARN environment variable not set")
         
-        secret = self.get_secret(secret_arn)
+        secret = self.get_secret(secret_arn, force_refresh=force_refresh)
         api_key = secret.get('api_key')
         if not api_key:
             raise AWSClientError("api_key not found in secret")
         
         return api_key
+    
+    def clear_cache(self) -> None:
+        """Clear the secrets cache"""
+        self._cache.clear()
+        logger.info("Secrets cache cleared")
 
 
 class BedrockClient:

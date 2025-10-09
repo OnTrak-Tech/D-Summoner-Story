@@ -3,11 +3,9 @@ Riot Games API client with rate limiting, error handling, and data transformatio
 Handles all interactions with the League of Legends Developer API.
 """
 
-import time
-import json
 import logging
-from typing import Dict, List, Optional, Any
-from dataclasses import asdict
+import time
+from typing import Dict, Any, List, Optional
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -67,15 +65,17 @@ class RiotAPIClient:
     
     def __init__(self, api_key: Optional[str] = None):
         """Initialize Riot API client"""
-        if api_key:
-            self.api_key = api_key
-        else:
-            # Get API key from AWS Secrets Manager
+        self._static_api_key = api_key
+        self._cached_api_key = None
+        self._api_key_cache_time = 0
+        self._api_key_cache_ttl = 300  # 5 minutes
+        
+        if not api_key:
+            # Initialize secrets client for dynamic key fetching
             try:
-                secrets_client = get_secrets_client()
-                self.api_key = secrets_client.get_riot_api_key()
+                self._secrets_client = get_secrets_client()
             except AWSClientError as e:
-                logger.error(f"Failed to get Riot API key: {e}")
+                logger.error(f"Failed to initialize secrets client: {e}")
                 raise RiotAPIError(f"Failed to initialize Riot API client: {e}")
         
         # Configure session with retry strategy
@@ -155,6 +155,12 @@ class RiotAPIClient:
                 elif response.status_code == 404:
                     raise SummonerNotFound("Summoner not found")
                 elif response.status_code == 403:
+                    # Try refreshing API key on 403 error
+                    if not self._static_api_key and attempt == 0:
+                        logger.warning("403 error, attempting to refresh API key")
+                        self._refresh_api_key()
+                        headers['X-Riot-Token'] = self.api_key
+                        continue
                     raise RiotAPIError("Forbidden - check API key")
                 else:
                     response.raise_for_status()
@@ -179,6 +185,33 @@ class RiotAPIClient:
                 time.sleep(wait_time)
         
         raise RiotAPIError("Max retries exceeded")
+    
+    @property
+    def api_key(self) -> str:
+        """Get API key with caching and refresh logic"""
+        if self._static_api_key:
+            return self._static_api_key
+        
+        current_time = time.time()
+        if (self._cached_api_key and 
+            current_time - self._api_key_cache_time < self._api_key_cache_ttl):
+            return self._cached_api_key
+        
+        return self._refresh_api_key()
+    
+    def _refresh_api_key(self) -> str:
+        """Refresh API key from AWS Secrets Manager"""
+        try:
+            self._cached_api_key = self._secrets_client.get_riot_api_key(force_refresh=True)
+            self._api_key_cache_time = time.time()
+            logger.info("API key refreshed from Secrets Manager")
+            return self._cached_api_key
+        except AWSClientError as e:
+            logger.error(f"Failed to refresh API key: {e}")
+            if self._cached_api_key:
+                logger.warning("Using cached API key due to refresh failure")
+                return self._cached_api_key
+            raise RiotAPIError(f"Failed to get API key: {e}")
     
     def get_summoner_by_name(self, summoner_name: str, region: str) -> RiotSummoner:
         """Get summoner information by name"""
