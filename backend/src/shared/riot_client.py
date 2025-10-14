@@ -214,26 +214,50 @@ class RiotAPIClient:
             raise RiotAPIError(f"Failed to get API key: {e}")
     
     def get_summoner_by_name(self, summoner_name: str, region: str) -> RiotSummoner:
-        """Get summoner information by name"""
-        if region not in self.BASE_URLS:
+        """Get summoner information by name (supports Riot ID format)"""
+        # Parse Riot ID format (GameName#TAG)
+        if '#' in summoner_name:
+            parts = summoner_name.split('#')
+            if len(parts) == 2:
+                return self.get_summoner_by_riot_id(parts[0], parts[1], region)
+        
+        # Default tag for regions without explicit tag
+        default_tags = {'kr': 'KR1', 'na1': 'NA1', 'euw1': 'EUW', 'eun1': 'EUNE'}
+        tag = default_tags.get(region, 'NA1')
+        return self.get_summoner_by_riot_id(summoner_name, tag, region)
+    
+    def get_summoner_by_riot_id(self, game_name: str, tag_line: str, region: str) -> RiotSummoner:
+        """Get summoner information by Riot ID"""
+        regional_platform = self.REGION_TO_REGIONAL.get(region)
+        if not regional_platform:
             raise RiotAPIError(f"Invalid region: {region}")
         
-        base_url = self.BASE_URLS[region]
-        url = f"{base_url}/lol/summoner/v4/summoners/by-name/{summoner_name}"
-        
         try:
-            data = self._make_request(url)
+            # Step 1: Get PUUID from Riot ID
+            base_url = self.REGIONAL_URLS[regional_platform]
+            account_url = f"{base_url}/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
+            account_data = self._make_request(account_url)
+            puuid = account_data['puuid']
+            
+            # Step 2: Get summoner data using PUUID
+            if region not in self.BASE_URLS:
+                raise RiotAPIError(f"Invalid region: {region}")
+            
+            region_url = self.BASE_URLS[region]
+            summoner_url = f"{region_url}/lol/summoner/v4/summoners/by-puuid/{puuid}"
+            summoner_data = self._make_request(summoner_url)
+            
             return RiotSummoner(
-                id=data['id'],
-                account_id=data['accountId'],
-                puuid=data['puuid'],
-                name=data['name'],
-                profile_icon_id=data['profileIconId'],
-                revision_date=data['revisionDate'],
-                summoner_level=data['summonerLevel']
+                id=summoner_data['id'],
+                account_id=summoner_data['accountId'],
+                puuid=summoner_data['puuid'],
+                name=summoner_data['name'],
+                profile_icon_id=summoner_data['profileIconId'],
+                revision_date=summoner_data['revisionDate'],
+                summoner_level=summoner_data['summonerLevel']
             )
         except Exception as e:
-            logger.error(f"Failed to get summoner {summoner_name} in {region}: {e}")
+            logger.error(f"Failed to get summoner {game_name}#{tag_line} in {region}: {e}")
             raise
     
     def get_match_history(self, puuid: str, region: str, count: int = 100, 
