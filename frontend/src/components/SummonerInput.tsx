@@ -57,21 +57,21 @@ export const SummonerInput: React.FC<SummonerInputProps> = ({
     const trimmed = name.trim();
     
     if (!trimmed) {
-      return 'Summoner name is required';
+      return 'Riot ID is required';
     }
     
     if (trimmed.length < 3) {
-      return 'Summoner name must be at least 3 characters';
+      return 'Riot ID must be at least 3 characters';
     }
     
-    if (trimmed.length > 16) {
-      return 'Summoner name must be 16 characters or less';
+    if (trimmed.length > 20) {
+      return 'Riot ID must be 20 characters or less';
     }
     
-    // Check for invalid characters (Riot allows letters, numbers, spaces, and some special chars)
-    const validPattern = /^[a-zA-Z0-9\s._-]+$/;
+    // Check for invalid characters (Riot ID allows letters, numbers, spaces, and # for tag)
+    const validPattern = /^[a-zA-Z0-9\s._#-]+$/;
     if (!validPattern.test(trimmed)) {
-      return 'Summoner name contains invalid characters';
+      return 'Riot ID contains invalid characters';
     }
     
     return undefined;
@@ -195,7 +195,7 @@ export const SummonerInput: React.FC<SummonerInputProps> = ({
             Get Your Year in Review
           </h2>
           <p className="text-gray-600 text-lg leading-relaxed">
-            Enter your summoner name to discover your League of Legends journey
+            Enter your Riot ID to discover your League of Legends journey
           </p>
         </div>
 
@@ -206,7 +206,7 @@ export const SummonerInput: React.FC<SummonerInputProps> = ({
               htmlFor="summoner-name" 
               className="block text-sm font-semibold text-gray-700 mb-2"
             >
-              Summoner Name
+              Riot ID
             </label>
             <div className="relative">
               <input
@@ -217,7 +217,7 @@ export const SummonerInput: React.FC<SummonerInputProps> = ({
                 onBlur={handleSummonerNameBlur}
                 onFocus={() => setShowRecentSearches(recentSearches.length > 0)}
                 disabled={isFormDisabled}
-                placeholder="Enter your summoner name"
+                placeholder="Enter your Riot ID (e.g., PlayerName#TAG)"
                 className={`
                   w-full px-4 py-4 border-2 rounded-2xl shadow-sm placeholder-gray-400 text-lg
                   focus:outline-none focus:ring-4 focus:ring-orange-200 focus:border-orange-400
