@@ -114,51 +114,35 @@ class RiotAPIClient:
             self.circuit_open_until = 0
             logger.info("Circuit breaker reset")
     
-    def _handle_rate_limit(self, response: requests.Response):
-        """Handle rate limiting based on response headers"""
-        if response.status_code == 429:
-            retry_after = int(response.headers.get('Retry-After', 60))
-            logger.warning(f"Rate limited, waiting {retry_after} seconds")
-            time.sleep(retry_after)
-            raise RateLimitExceeded(f"Rate limited, retry after {retry_after} seconds")
-        
-        # Update rate limit tracking
-        app_rate_limit = response.headers.get('X-App-Rate-Limit-Count')
-        if app_rate_limit:
-            current, limit = app_rate_limit.split(':')[0].split(',')[0], app_rate_limit.split(':')[1].split(',')[0]
-            if int(current) >= int(limit) * 0.8:  # 80% of limit
-                logger.warning(f"Approaching rate limit: {current}/{limit}")
-                time.sleep(1)  # Slow down requests
-    
     def _make_request(self, url: str, max_retries: int = 3) -> Dict[str, Any]:
         """Make HTTP request with error handling and retries"""
         self._check_circuit_breaker()
-        
+
         headers = {
             'X-Riot-Token': self.api_key,
             'Accept': 'application/json'
         }
-        
+
         for attempt in range(max_retries):
             try:
                 # Implement basic rate limiting
                 current_time = time.time()
                 if current_time - self.last_request_time < 1.2:  # 1.2 seconds between requests
                     time.sleep(1.2 - (current_time - self.last_request_time))
-                
-                response = self.session.get(url, headers=headers, timeout=30)
+
+                logger.debug(f"Making request to {url}")
+                response = self.session.get(url, headers=headers, timeout=10)
                 self.last_request_time = time.time()
-                
+
                 # Handle rate limiting
                 self._handle_rate_limit(response)
-                
+
                 if response.status_code == 200:
                     self.failure_count = 0  # Reset failure count on success
                     return response.json()
                 elif response.status_code == 404:
                     raise SummonerNotFound("Summoner not found")
                 elif response.status_code == 403:
-                    # Try refreshing API key on 403 error
                     if not self._static_api_key and attempt == 0:
                         logger.warning("403 error, attempting to refresh API key")
                         self._refresh_api_key()
@@ -167,7 +151,7 @@ class RiotAPIClient:
                     raise RiotAPIError("Forbidden - check API key")
                 else:
                     response.raise_for_status()
-                    
+
             except RateLimitExceeded:
                 if attempt == max_retries - 1:
                     raise
@@ -175,19 +159,26 @@ class RiotAPIClient:
             except requests.exceptions.RequestException as e:
                 self.failure_count += 1
                 logger.error(f"Request failed (attempt {attempt + 1}): {e}")
-                
+
                 if self.failure_count >= self.max_failures:
                     self.circuit_open_until = time.time() + self.circuit_timeout
                     logger.error("Circuit breaker opened due to too many failures")
-                
+
                 if attempt == max_retries - 1:
                     raise RiotAPIError(f"Request failed after {max_retries} attempts: {e}")
-                
+
                 # Exponential backoff
                 wait_time = (2 ** attempt) + (time.time() % 1)
                 time.sleep(wait_time)
-        
+
         raise RiotAPIError("Max retries exceeded")
+    
+    def _handle_rate_limit(self, response: requests.Response):
+        if response.status_code == 429:
+            retry_after = int(response.headers.get('Retry-After', 60))  # Default to 60 seconds
+            logger.warning(f"Rate limited, waiting {retry_after} seconds")
+            time.sleep(retry_after)
+            raise RateLimitExceeded(f"Rate limited, retry after {retry_after} seconds")
     
     @property
     def api_key(self) -> str:
@@ -264,8 +255,6 @@ class RiotAPIClient:
             )
         except Exception as e:
             logger.error(f"Failed to get summoner {game_name}#{tag_line} in {region}: {e}")
-            raiserror(f"Failed to get summoner {game_name}#{tag_line} in {region}: {e}")
-            raiserror(f"Failed to get summoner {game_name}#{tag_line} in {region}: {e}")
             raise
     
     def get_match_history(self, puuid: str, region: str, count: int = 100, 
