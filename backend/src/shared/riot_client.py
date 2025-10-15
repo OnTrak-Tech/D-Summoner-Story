@@ -259,7 +259,13 @@ class RiotAPIClient:
         except SummonerNotFound:
             logger.error(f"Summoner not found for Riot ID {game_name}#{tag_line} in {region}")
             raise RiotAPIError(f"Summoner not found for Riot ID {game_name}#{tag_line} in {region}")
-        except RiotAPIError
+        except Exception as e:
+            logger.error(f"Failed to get summoner {game_name}#{tag_line} in {region}: {e}")
+            raise
+    
+    def get_match_history(self, puuid: str, region: str, count: int = 100, 
+                         start_time: Optional[int] = None, end_time: Optional[int] = None) -> List[str]:
+        """Get match history for a player"""
         regional_platform = self.REGION_TO_REGIONAL.get(region)
         if not regional_platform:
             raise RiotAPIError(f"Invalid region for match history: {region}")
