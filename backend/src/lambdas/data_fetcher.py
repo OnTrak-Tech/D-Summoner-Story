@@ -12,8 +12,7 @@ import logging
 
 # Import shared modules
 import sys
-sys.path.append('/opt/python')  # Lambda layer path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from shared.models import FetchRequest
 from shared.riot_client import get_riot_client, RiotAPIError, SummonerNotFound
@@ -86,7 +85,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         dynamodb_client.put_item(processing_jobs_table, asdict(job))
 
         
-        logger.info(f"Starting data fetch for {summoner_name} in {request.region}")
+        logger.info(f"Starting data fetch for Riot ID {request.summoner_name} in {request.region}")
         
         # Update job status to fetching
         dynamodb_client.update_item(
