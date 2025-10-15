@@ -358,7 +358,8 @@ def validate_region(region: str) -> bool:
     """Validate if region is supported"""
     valid_regions = {
         'na1', 'euw1', 'eun1', 'kr', 'br1', 
-        'la1', 'la2', 'oc1', 'ru', 'tr1', 'jp1'
+        'la1', 'la2', 'oc1', 'ru', 'tr1', 'jp1',
+        'sg2', 'tw2', 'vn2'
     }
     return region in valid_regions
 
