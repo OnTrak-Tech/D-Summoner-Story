@@ -264,6 +264,7 @@ class RiotAPIClient:
             )
         except Exception as e:
             logger.error(f"Failed to get summoner {game_name}#{tag_line} in {region}: {e}")
+            raiserror(f"Failed to get summoner {game_name}#{tag_line} in {region}: {e}")
             raise
     
     def get_match_history(self, puuid: str, region: str, count: int = 100, 
