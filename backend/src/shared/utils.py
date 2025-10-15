@@ -8,6 +8,7 @@ import hashlib
 from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import asdict
+from decimal import Decimal
 import logging
 
 from .models import (
@@ -326,6 +327,13 @@ def generate_s3_key(summoner_id: str, data_type: str, timestamp: Optional[int] =
     return f"{data_type}/{summoner_id}/{year}/{month:02d}/{timestamp}.json"
 
 
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super(DecimalEncoder, self).default(obj)
+
+
 def format_lambda_response(status_code: int, body: Any, 
                           headers: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
     """Format Lambda response with proper CORS headers"""
@@ -342,7 +350,7 @@ def format_lambda_response(status_code: int, body: Any,
     return {
         "statusCode": status_code,
         "headers": default_headers,
-        "body": json.dumps(body) if not isinstance(body, str) else body
+        "body": json.dumps(body, cls=DecimalEncoder) if not isinstance(body, str) else body
     }
 
 
