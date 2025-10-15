@@ -209,11 +209,16 @@ class RiotAPIClient:
     
     def get_summoner_by_name(self, summoner_name: str, region: str) -> RiotSummoner:
         """Get summoner information by name (supports Riot ID format)"""
-        # Parse Riot ID format (GameName#TAG)
+        # Enhanced input validation and logging for Riot ID
+        logger.debug(f"get_summoner_by_name called with: {summoner_name}, region: {region}")
         if '#' in summoner_name:
             parts = summoner_name.split('#')
-            if len(parts) == 2:
-                return self.get_summoner_by_riot_id(parts[0], parts[1], region)
+            if len(parts) == 2 and all(parts):
+                logger.debug(f"Detected Riot ID format: {parts[0]}#{parts[1].upper()}")
+                return self.get_summoner_by_riot_id(parts[0], parts[1].upper(), region)
+            else:
+                logger.error("Invalid Riot ID format. Expected 'GameName#TagLine'.")
+                raise RiotAPIError("Invalid Riot ID format. Expected 'GameName#TagLine'.")
         
         # Default tag for regions without explicit tag
         default_tags = {
@@ -225,25 +230,23 @@ class RiotAPIClient:
     
     def get_summoner_by_riot_id(self, game_name: str, tag_line: str, region: str) -> RiotSummoner:
         """Get summoner information by Riot ID"""
+        logger.debug(f"Requesting Riot ID: {game_name}#{tag_line} in {region}")
         regional_platform = self.REGION_TO_REGIONAL.get(region)
         if not regional_platform:
+            logger.error(f"Invalid region: {region}")
             raise RiotAPIError(f"Invalid region: {region}")
-        
         try:
-            # Step 1: Get PUUID from Riot ID
             base_url = self.REGIONAL_URLS[regional_platform]
             account_url = f"{base_url}/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
+            logger.debug(f"Account URL: {account_url}")
             account_data = self._make_request(account_url)
+            logger.debug(f"Account response: {account_data}")
             puuid = account_data['puuid']
-            
-            # Step 2: Get summoner data using PUUID
-            if region not in self.BASE_URLS:
-                raise RiotAPIError(f"Invalid region: {region}")
-            
             region_url = self.BASE_URLS[region]
             summoner_url = f"{region_url}/lol/summoner/v4/summoners/by-puuid/{puuid}"
+            logger.debug(f"Summoner URL: {summoner_url}")
             summoner_data = self._make_request(summoner_url)
-            
+            logger.debug(f"Summoner response: {summoner_data}")
             return RiotSummoner(
                 id=summoner_data['id'],
                 account_id=summoner_data['accountId'],
@@ -253,13 +256,10 @@ class RiotAPIClient:
                 revision_date=summoner_data['revisionDate'],
                 summoner_level=summoner_data['summonerLevel']
             )
-        except Exception as e:
-            logger.error(f"Failed to get summoner {game_name}#{tag_line} in {region}: {e}")
-            raise
-    
-    def get_match_history(self, puuid: str, region: str, count: int = 100, 
-                         start_time: Optional[int] = None, end_time: Optional[int] = None) -> List[str]:
-        """Get match history for a player"""
+        except SummonerNotFound:
+            logger.error(f"Summoner not found for Riot ID {game_name}#{tag_line} in {region}")
+            raise RiotAPIError(f"Summoner not found for Riot ID {game_name}#{tag_line} in {region}")
+        except RiotAPIError
         regional_platform = self.REGION_TO_REGIONAL.get(region)
         if not regional_platform:
             raise RiotAPIError(f"Invalid region for match history: {region}")
