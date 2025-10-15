@@ -177,6 +177,8 @@ jobs:
       
       - name: Build Lambda Layer
         run: |
+          # Copy shared modules to layer
+          cp -r ../../backend/src/shared layer/python/
           # Install dependencies for Lambda layer
           cd layer/python
           pip install -r requirements.txt -t .
