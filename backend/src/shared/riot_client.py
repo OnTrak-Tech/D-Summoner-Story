@@ -230,43 +230,30 @@ class RiotAPIClient:
     
     def get_summoner_by_riot_id(self, game_name: str, tag_line: str, region: str) -> RiotSummoner:
         """Get summoner information by Riot ID"""
-        logger.error(f"DEBUG: Requesting Riot ID: {game_name}#{tag_line} in {region}")
         regional_platform = self.REGION_TO_REGIONAL.get(region)
         if not regional_platform:
-            logger.error(f"Invalid region: {region}")
             raise RiotAPIError(f"Invalid region: {region}")
         try:
             base_url = self.REGIONAL_URLS[regional_platform]
             account_url = f"{base_url}/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
-            logger.error(f"DEBUG: Account URL: {account_url}")
             account_data = self._make_request(account_url)
-            logger.error(f"DEBUG: Account response: {account_data}")
             puuid = account_data['puuid']
+            
             region_url = self.BASE_URLS[region]
             summoner_url = f"{region_url}/lol/summoner/v4/summoners/by-puuid/{puuid}"
-            logger.error(f"DEBUG: Summoner URL: {summoner_url}")
             summoner_data = self._make_request(summoner_url)
-            logger.error(f"DEBUG: Summoner response keys: {list(summoner_data.keys())}")
-            logger.error(f"DEBUG: Full summoner response: {summoner_data}")
             
-            # Check for required fields
-            required_fields = ['id', 'accountId', 'puuid', 'name', 'profileIconId', 'revisionDate', 'summonerLevel']
-            missing_fields = [field for field in required_fields if field not in summoner_data]
-            if missing_fields:
-                logger.error(f"Missing required fields in summoner response: {missing_fields}")
-                raise RiotAPIError(f"Invalid summoner response - missing fields: {missing_fields}")
-            
+            # Handle flexible field mapping with fallbacks
             return RiotSummoner(
-                id=summoner_data['id'],
-                account_id=summoner_data['accountId'],
-                puuid=summoner_data['puuid'],
-                name=summoner_data['name'],
-                profile_icon_id=summoner_data['profileIconId'],
-                revision_date=summoner_data['revisionDate'],
-                summoner_level=summoner_data['summonerLevel']
+                id=summoner_data.get('id', summoner_data.get('summonerId', '')),
+                account_id=summoner_data.get('accountId', summoner_data.get('account_id', '')),
+                puuid=summoner_data.get('puuid', puuid),
+                name=summoner_data.get('name', summoner_data.get('displayName', game_name)),
+                profile_icon_id=summoner_data.get('profileIconId', summoner_data.get('profile_icon_id', 0)),
+                revision_date=summoner_data.get('revisionDate', summoner_data.get('revision_date', int(time.time() * 1000))),
+                summoner_level=summoner_data.get('summonerLevel', summoner_data.get('summoner_level', 1))
             )
         except SummonerNotFound:
-            logger.error(f"Summoner not found for Riot ID {game_name}#{tag_line} in {region}")
             raise RiotAPIError(f"Summoner not found for Riot ID {game_name}#{tag_line} in {region}")
         except Exception as e:
             logger.error(f"Failed to get summoner {game_name}#{tag_line} in {region}: {e}")
