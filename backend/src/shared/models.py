@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field, validator
 # API Request/Response Models
 class AuthRequest(BaseModel):
     summoner_name: str = Field(..., min_length=1, max_length=50)
-    region: str = Field(..., pattern=r'^(na1|euw1|eun1|kr|br1|la1|la2|oc1|ru|tr1|jp1)$')
+    region: str = Field(..., pattern=r'^(na1|euw1|eun1|kr|br1|la1|la2|oc1|ru|tr1|jp1|sg2|tw2|vn2)$')
 
 
     @validator('summoner_name')
