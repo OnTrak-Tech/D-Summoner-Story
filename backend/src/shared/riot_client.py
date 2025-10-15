@@ -230,7 +230,7 @@ class RiotAPIClient:
     
     def get_summoner_by_riot_id(self, game_name: str, tag_line: str, region: str) -> RiotSummoner:
         """Get summoner information by Riot ID"""
-        logger.debug(f"Requesting Riot ID: {game_name}#{tag_line} in {region}")
+        logger.info(f"Requesting Riot ID: {game_name}#{tag_line} in {region}")
         regional_platform = self.REGION_TO_REGIONAL.get(region)
         if not regional_platform:
             logger.error(f"Invalid region: {region}")
@@ -238,15 +238,24 @@ class RiotAPIClient:
         try:
             base_url = self.REGIONAL_URLS[regional_platform]
             account_url = f"{base_url}/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
-            logger.debug(f"Account URL: {account_url}")
+            logger.info(f"Account URL: {account_url}")
             account_data = self._make_request(account_url)
-            logger.debug(f"Account response: {account_data}")
+            logger.info(f"Account response: {account_data}")
             puuid = account_data['puuid']
             region_url = self.BASE_URLS[region]
             summoner_url = f"{region_url}/lol/summoner/v4/summoners/by-puuid/{puuid}"
-            logger.debug(f"Summoner URL: {summoner_url}")
+            logger.info(f"Summoner URL: {summoner_url}")
             summoner_data = self._make_request(summoner_url)
-            logger.debug(f"Summoner response: {summoner_data}")
+            logger.info(f"Summoner response keys: {list(summoner_data.keys())}")
+            logger.info(f"Full summoner response: {summoner_data}")
+            
+            # Check for required fields
+            required_fields = ['id', 'accountId', 'puuid', 'name', 'profileIconId', 'revisionDate', 'summonerLevel']
+            missing_fields = [field for field in required_fields if field not in summoner_data]
+            if missing_fields:
+                logger.error(f"Missing required fields in summoner response: {missing_fields}")
+                raise RiotAPIError(f"Invalid summoner response - missing fields: {missing_fields}")
+            
             return RiotSummoner(
                 id=summoner_data['id'],
                 account_id=summoner_data['accountId'],
