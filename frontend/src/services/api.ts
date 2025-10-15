@@ -262,7 +262,7 @@ export const apiService = new APIService();
 
 // Export utility functions
 export const isValidRegion = (region: string): boolean => {
-  const validRegions = ['na1', 'euw1', 'eun1', 'kr', 'br1', 'la1', 'la2', 'oc1', 'ru', 'tr1', 'jp1'];
+  const validRegions = ['na1', 'euw1', 'eun1', 'kr', 'br1', 'la1', 'la2', 'oc1', 'ru', 'tr1', 'jp1', 'sg2', 'tw2', 'vn2'];
   return validRegions.includes(region.toLowerCase());
 };
 
@@ -278,7 +278,10 @@ export const formatRegionDisplay = (region: string): string => {
     'oc1': 'Oceania',
     'ru': 'Russia',
     'tr1': 'Turkey',
-    'jp1': 'Japan'
+    'jp1': 'Japan',
+    'sg2': 'Singapore',
+    'tw2': 'Taiwan',
+    'vn2': 'Vietnam'
   };
   
   return regionMap[region.toLowerCase()] || region.toUpperCase();
