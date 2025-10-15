@@ -32,6 +32,9 @@ const REGIONS = [
   { value: 'ru', label: 'Russia', flag: '🇷🇺' },
   { value: 'tr1', label: 'Turkey', flag: '🇹🇷' },
   { value: 'jp1', label: 'Japan', flag: '🇯🇵' },
+  { value: 'sg2', label: 'Singapore', flag: '🇸🇬' },
+  { value: 'tw2', label: 'Taiwan', flag: '🇹🇼' },
+  { value: 'vn2', label: 'Vietnam', flag: '🇻🇳' },
 ];
 
 export const SummonerInput: React.FC<SummonerInputProps> = ({

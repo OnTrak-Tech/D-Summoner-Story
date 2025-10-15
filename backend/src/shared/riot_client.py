@@ -48,7 +48,10 @@ class RiotAPIClient:
         'oc1': 'https://oc1.api.riotgames.com',
         'ru': 'https://ru.api.riotgames.com',
         'tr1': 'https://tr1.api.riotgames.com',
-        'jp1': 'https://jp1.api.riotgames.com'
+        'jp1': 'https://jp1.api.riotgames.com',
+        'sg2': 'https://sg2.api.riotgames.com',
+        'tw2': 'https://tw2.api.riotgames.com',
+        'vn2': 'https://vn2.api.riotgames.com'
     }
     
     REGIONAL_URLS = {
@@ -60,7 +63,7 @@ class RiotAPIClient:
     REGION_TO_REGIONAL = {
         'na1': 'americas', 'br1': 'americas', 'la1': 'americas', 'la2': 'americas',
         'euw1': 'europe', 'eun1': 'europe', 'tr1': 'europe', 'ru': 'europe',
-        'kr': 'asia', 'jp1': 'asia', 'oc1': 'asia'
+        'kr': 'asia', 'jp1': 'asia', 'oc1': 'asia', 'sg2': 'asia', 'tw2': 'asia', 'vn2': 'asia'
     }
     
     def __init__(self, api_key: Optional[str] = None):
@@ -222,7 +225,10 @@ class RiotAPIClient:
                 return self.get_summoner_by_riot_id(parts[0], parts[1], region)
         
         # Default tag for regions without explicit tag
-        default_tags = {'kr': 'KR1', 'na1': 'NA1', 'euw1': 'EUW', 'eun1': 'EUNE'}
+        default_tags = {
+            'kr': 'KR1', 'na1': 'NA1', 'euw1': 'EUW', 'eun1': 'EUNE',
+            'sg2': 'SG2', 'tw2': 'TW2', 'vn2': 'VN2'
+        }
         tag = default_tags.get(region, 'NA1')
         return self.get_summoner_by_riot_id(summoner_name, tag, region)
     
