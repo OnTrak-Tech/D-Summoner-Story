@@ -192,24 +192,35 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             logger.info(f"Found cached insights for session {session_id}")
             return format_lambda_response(200, json.loads(existing_insights))
         
-        # Load player statistics from DynamoDB
-        # Note: We need to query by session_id, which requires a GSI or scan
-        # For now, we'll use a placeholder approach
+        # Load player statistics from DynamoDB by scanning for session_id
+        scan_result = dynamodb_client.scan_table(
+            player_stats_table,
+            filter_expression="session_id = :session_id",
+            expression_values={":session_id": session_id}
+        )
         
-        # In a real implementation, you'd query by GSI on session_id
-        # For this example, we'll create mock statistics
+        if not scan_result:
+            return format_lambda_response(404, {
+                "error": "NO_INSIGHTS",
+                "message": f"No insights found for session {session_id}. Generate insights first."
+            })
+        
+        # Use the first (and should be only) result
+        stats_data = scan_result[0]
+        
+        # Create ProcessedStats object from DynamoDB data
         mock_stats = ProcessedStats(
-            summoner_id="mock_summoner",
-            summoner_name="TestSummoner",
-            region="na1",
-            total_games=150,
-            total_wins=95,
-            total_losses=55,
-            win_rate=63.3,
-            total_kills=1250,
-            total_deaths=890,
-            total_assists=1680,
-            avg_kda=3.3,
+            summoner_id=stats_data.get('PK', '').replace('PLAYER#', ''),
+            summoner_name=stats_data.get('summoner_name', 'Unknown'),
+            region=stats_data.get('region', 'unknown'),
+            total_games=int(stats_data.get('total_games', 0)),
+            total_wins=int(stats_data.get('total_games', 0) * stats_data.get('win_rate', 0) / 100),
+            total_losses=int(stats_data.get('total_games', 0) * (100 - stats_data.get('win_rate', 0)) / 100),
+            win_rate=float(stats_data.get('win_rate', 0)),
+            total_kills=0,
+            total_deaths=0,
+            total_assists=0,
+            avg_kda=float(stats_data.get('avg_kda', 0)),
             champion_stats=[],
             monthly_trends=[],
             most_played_champion=None,

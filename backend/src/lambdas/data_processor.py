@@ -201,10 +201,15 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         )
         
         try:
-            # Load raw match data from S3
-            # Note: In a real implementation, we'd need the summoner ID
-            # For now, we'll extract it from the job or use a placeholder
-            summoner_id = "placeholder_summoner_id"  # This should come from the job data
+            # Extract summoner ID from S3 key in job data
+            # Get the S3 key from the raw data to extract summoner ID
+            raw_data_objects = s3_client.list_objects(raw_data_bucket, "raw-matches/")
+            if not raw_data_objects:
+                raise Exception("No raw match data found")
+            
+            # Find the most recent S3 key and extract summoner ID
+            latest_key = sorted(raw_data_objects)[-1]
+            summoner_id = latest_key.split('/')[1]  # Extract from raw-matches/{summoner_id}/...
             
             matches = load_matches_from_s3(s3_client, raw_data_bucket, summoner_id)
             
@@ -255,7 +260,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             player_stats_item = create_player_stats_item(request.session_id, processed_stats)
             
             # Store processed statistics in DynamoDB
-            dynamodb_client.put_item(player_stats_table, asdict(player_stats_item))
+            dynamodb_client.put_item(player_stats_table, player_stats_item.model_dump())
             
             # Update job as completed
             dynamodb_client.update_item(
