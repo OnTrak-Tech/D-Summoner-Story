@@ -11,8 +11,7 @@ import logging
 
 # Import shared modules
 import sys
-sys.path.append('/opt/python')  # Lambda layer path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from shared.models import ProcessedStats, GeneratedInsight, BedrockPrompt
 from shared.aws_clients import (

@@ -79,6 +79,23 @@ class DynamoDBClient:
         except ClientError as e:
             logger.error(f"Failed to query {table_name}: {e}")
             raise AWSClientError(f"DynamoDB query failed: {e}")
+    
+    def scan_table(self, table_name: str, filter_expression: str = None, 
+                   expression_values: Dict[str, Any] = None) -> List[Dict[str, Any]]:
+        """Scan DynamoDB table with optional filter"""
+        try:
+            table = self.resource.Table(table_name)
+            scan_params = {}
+            
+            if filter_expression and expression_values:
+                scan_params["FilterExpression"] = filter_expression
+                scan_params["ExpressionAttributeValues"] = expression_values
+                
+            response = table.scan(**scan_params)
+            return response.get('Items', [])
+        except ClientError as e:
+            logger.error(f"Failed to scan {table_name}: {e}")
+            raise AWSClientError(f"DynamoDB scan failed: {e}")
 
 
 class S3Client:

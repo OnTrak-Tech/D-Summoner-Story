@@ -12,8 +12,7 @@ import logging
 
 # Import shared modules
 import sys
-sys.path.append('/opt/python')  # Lambda layer path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from shared.models import ProcessRequest, RiotMatch, RiotParticipant
 from shared.aws_clients import get_s3_client, get_dynamodb_client, get_bucket_name, get_table_name
@@ -260,7 +259,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             player_stats_item = create_player_stats_item(request.session_id, processed_stats)
             
             # Store processed statistics in DynamoDB
-            dynamodb_client.put_item(player_stats_table, player_stats_item.model_dump())
+            dynamodb_client.put_item(player_stats_table, asdict(player_stats_item))
             
             # Update job as completed
             dynamodb_client.update_item(
