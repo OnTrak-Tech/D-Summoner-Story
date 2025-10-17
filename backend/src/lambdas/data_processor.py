@@ -114,29 +114,52 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     try:
         # Handle both direct invocation and API Gateway
         if 'pathParameters' in event:
+            print("STATUS CHECK: Detected API Gateway invocation")
             # API Gateway invocation - extract job ID from path
             job_id = event['pathParameters'].get('jobId')
+            print(f"STATUS CHECK: Job ID extracted: {job_id}")
             if not job_id:
+                print("STATUS CHECK: Missing job ID")
                 return format_lambda_response(400, {
                     "error": "MISSING_JOB_ID",
                     "message": "Job ID is required in path parameters"
                 })
             
+            print("STATUS CHECK: Initializing AWS clients")
             # For status check, return job status
-            dynamodb_client = get_dynamodb_client()
-            processing_jobs_table = get_table_name("PROCESSING_JOBS")
+            try:
+                dynamodb_client = get_dynamodb_client()
+                print("STATUS CHECK: DynamoDB client initialized")
+            except Exception as e:
+                print(f"STATUS CHECK: Failed to initialize DynamoDB client: {e}")
+                raise
             
-            job_item = dynamodb_client.get_item(
-                processing_jobs_table,
-                {"PK": f"JOB#{job_id}"}
-            )
+            try:
+                processing_jobs_table = get_table_name("PROCESSING_JOBS")
+                print(f"STATUS CHECK: Table name: {processing_jobs_table}")
+            except Exception as e:
+                print(f"STATUS CHECK: Failed to get table name: {e}")
+                raise
+            
+            print(f"STATUS CHECK: Querying job: JOB#{job_id}")
+            try:
+                job_item = dynamodb_client.get_item(
+                    processing_jobs_table,
+                    {"PK": f"JOB#{job_id}"}
+                )
+                print(f"STATUS CHECK: Query result: {job_item}")
+            except Exception as e:
+                print(f"STATUS CHECK: DynamoDB query failed: {e}")
+                raise
             
             if not job_item:
+                print("STATUS CHECK: Job not found, returning 404")
                 return format_lambda_response(404, {
                     "error": "JOB_NOT_FOUND",
                     "message": f"Job {job_id} not found"
                 })
             
+            print("STATUS CHECK: Job found, returning status")
             return format_lambda_response(200, {
                 "job_id": job_id,
                 "status": job_item.get('status'),
@@ -339,6 +362,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             raise
             
     except Exception as e:
+        print(f"STATUS CHECK: Unexpected error: {e}")
         logger.error(f"Unexpected error in data processor: {e}", exc_info=True)
         
         return format_lambda_response(500, {
