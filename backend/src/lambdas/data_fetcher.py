@@ -202,6 +202,27 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 }
             )
             
+            # Invoke data processor Lambda to start processing
+            try:
+                import boto3
+                lambda_client = boto3.client('lambda')
+                processor_function_name = os.environ.get('DATA_PROCESSOR_FUNCTION_NAME')
+                
+                if processor_function_name:
+                    lambda_client.invoke(
+                        FunctionName=processor_function_name,
+                        InvocationType='Event',  # Async
+                        Payload=json.dumps({
+                            'session_id': request.session_id,
+                            'job_id': job_id
+                        })
+                    )
+                    logger.info(f"Invoked data processor for job {job_id}")
+                else:
+                    logger.warning("DATA_PROCESSOR_FUNCTION_NAME not set, skipping processor invocation")
+            except Exception as e:
+                logger.error(f"Failed to invoke data processor: {e}")
+            
             logger.info(f"Successfully fetched and stored data for {summoner.name}")
             
             return format_lambda_response(200, {

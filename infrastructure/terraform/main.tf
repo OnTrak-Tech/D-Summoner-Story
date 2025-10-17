@@ -198,6 +198,27 @@ resource "aws_iam_policy" "lambda_bedrock" {
   })
 }
 
+# Lambda invoke policy
+resource "aws_iam_policy" "lambda_invoke" {
+  name        = "${local.name_prefix}-lambda-invoke"
+  description = "Lambda invoke access for Lambda functions"
+  
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "lambda:InvokeFunction"
+        ]
+        Resource = [
+          module.lambda_data_processor.lambda_arn
+        ]
+      }
+    ]
+  })
+}
+
 ###############################################
 # Lambda Layer for Shared Modules
 ###############################################
@@ -255,11 +276,13 @@ module "lambda_data_fetcher" {
     RAW_DATA_BUCKET          = module.s3_raw_data.bucket_name
     PROCESSING_JOBS_TABLE    = module.ddb_processing_jobs.table_name
     RIOT_API_SECRET_ARN      = aws_secretsmanager_secret.riot_api_key.arn
+    DATA_PROCESSOR_FUNCTION_NAME = module.lambda_data_processor.function_name
   }
   policy_arns = [
     aws_iam_policy.lambda_dynamodb.arn,
     aws_iam_policy.lambda_s3.arn,
-    aws_iam_policy.lambda_secrets.arn
+    aws_iam_policy.lambda_secrets.arn,
+    aws_iam_policy.lambda_invoke.arn
   ]
 }
 
