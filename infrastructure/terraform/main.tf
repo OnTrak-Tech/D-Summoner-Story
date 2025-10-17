@@ -212,7 +212,8 @@ resource "aws_iam_policy" "lambda_invoke" {
           "lambda:InvokeFunction"
         ]
         Resource = [
-          module.lambda_data_processor.lambda_arn
+          module.lambda_data_processor.lambda_arn,
+          module.lambda_insight_generator.lambda_arn
         ]
       }
     ]
@@ -300,10 +301,12 @@ module "lambda_data_processor" {
     RAW_DATA_BUCKET          = module.s3_raw_data.bucket_name
     PLAYER_STATS_TABLE       = module.ddb_player_stats.table_name
     PROCESSING_JOBS_TABLE    = module.ddb_processing_jobs.table_name
+    INSIGHT_GENERATOR_FUNCTION_NAME = module.lambda_insight_generator.function_name
   }
   policy_arns = [
     aws_iam_policy.lambda_dynamodb.arn,
-    aws_iam_policy.lambda_s3.arn
+    aws_iam_policy.lambda_s3.arn,
+    aws_iam_policy.lambda_invoke.arn
   ]
 }
 

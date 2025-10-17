@@ -4,6 +4,8 @@ Processes raw match data into statistical insights and trends.
 Calculates KDA, win rates, champion statistics, and monthly trends.
 """
 
+print("DATA PROCESSOR STARTING...")
+
 import json
 import os
 from typing import Any, Dict, List
@@ -106,6 +108,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     4. Store processed statistics in DynamoDB
     5. Update processing job status
     """
+    print(f"DATA PROCESSOR HANDLER STARTED: {event}")
+    logger.info(f"Data processor handler started with event: {event}")
+    
     try:
         # Handle both direct invocation and API Gateway
         if 'pathParameters' in event:
@@ -260,6 +265,24 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
             # Store processed statistics in DynamoDB
             dynamodb_client.put_item(player_stats_table, asdict(player_stats_item))
+            
+            # Invoke insight generator Lambda
+            try:
+                import boto3
+                lambda_client = boto3.client('lambda')
+                insight_function_name = os.environ.get('INSIGHT_GENERATOR_FUNCTION_NAME')
+                
+                if insight_function_name:
+                    lambda_client.invoke(
+                        FunctionName=insight_function_name,
+                        InvocationType='Event',
+                        Payload=json.dumps({'session_id': request.session_id})
+                    )
+                    logger.info(f"Invoked insight generator for session {request.session_id}")
+                else:
+                    logger.warning("INSIGHT_GENERATOR_FUNCTION_NAME not set")
+            except Exception as e:
+                logger.error(f"Failed to invoke insight generator: {e}")
             
             # Update job as completed
             dynamodb_client.update_item(
