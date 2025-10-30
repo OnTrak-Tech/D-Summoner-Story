@@ -279,10 +279,16 @@ class RiotAPIClient:
         if params:
             url += '?' + '&'.join([f"{k}={v}" for k, v in params.items()])
         
+        print(f"RIOT CLIENT: Calling match history API: {url}")
+        logger.info(f"Match history API call: {url}")
+        
         try:
             match_ids = self._make_request(url)
+            print(f"RIOT CLIENT: API returned {len(match_ids)} match IDs")
+            logger.info(f"Match history API returned {len(match_ids)} match IDs")
             return match_ids
         except Exception as e:
+            print(f"RIOT CLIENT: Match history API failed: {e}")
             logger.error(f"Failed to get match history for {puuid}: {e}")
             raise
     
@@ -336,12 +342,18 @@ class RiotAPIClient:
             logger.error(f"Failed to get match details for {match_id}: {e}")
             raise
     
-    def get_full_match_history(self, summoner: RiotSummoner, region: str, 
-                              months_back: int = 12) -> List[RiotMatch]:
-        """Get full match history for a summoner over specified months"""
-        # Calculate time range (last N months)
-        now = int(time.time())
-        past_12_months = now - (months_back * 30 * 24 * 60 * 60)  # months_back months ago
+    def get_full_match_history_with_time(self, summoner: RiotSummoner, region: str, 
+                                        start_time: int, end_time: int) -> List[RiotMatch]:
+        """Get full match history for a summoner with explicit time range"""
+        print(f"RIOT CLIENT: Using time range {start_time} to {end_time}")
+        logger.info(f"Match history time range: {start_time} to {end_time}")
+        
+        all_matches = []
+        start_index = 0
+        batch_size = 100
+        
+        try:
+            while True:
         
         all_matches = []
         start_index = 0
@@ -354,12 +366,15 @@ class RiotAPIClient:
                     summoner.puuid, 
                     region, 
                     count=batch_size,
-                    start_time=past_12_months * 1000,  # Convert to milliseconds
-                    end_time=now * 1000
+                    start_time=start_time * 1000,  # Convert to milliseconds
+                    end_time=end_time * 1000
                 )
                 
                 if not match_ids:
+                    print(f"RIOT CLIENT: No match IDs returned")
                     break
+                
+                print(f"RIOT CLIENT: Got {len(match_ids)} match IDs")
                 
                 # Get detailed match data
                 for match_id in match_ids:
@@ -391,6 +406,14 @@ class RiotAPIClient:
         except Exception as e:
             logger.error(f"Failed to get full match history: {e}")
             raise
+    
+    def get_full_match_history(self, summoner: RiotSummoner, region: str, 
+                              months_back: int = 12) -> List[RiotMatch]:
+        """Get full match history for a summoner over specified months"""
+        # Calculate time range (last N months)
+        now = int(time.time())
+        past_12_months = now - (months_back * 30 * 24 * 60 * 60)  # months_back months ago
+        return self.get_full_match_history_with_time(summoner, region, past_12_months, now)
 
 
 # Singleton instance for Lambda reuse

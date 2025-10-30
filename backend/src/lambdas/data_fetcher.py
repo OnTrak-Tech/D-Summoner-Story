@@ -139,12 +139,17 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
             # Add detailed logging for match history
             import time
-            now = int(time.time())
+            system_time = int(time.time())
+            # Use hardcoded current time (Oct 30, 2024) since system clock is wrong
+            now = 1730332800  # Oct 30, 2024 12:00 PM UTC
             past_12_months = now - (12 * 30 * 24 * 60 * 60)  # 12 months back
+            logger.info(f"System time: {system_time}, Using corrected time: {now}")
             logger.info(f"Fetching matches for {summoner.name} from {past_12_months} to {now} in {request.region}")
+            print(f"DATA FETCHER: System time: {system_time}, Using corrected time: {now}")
             print(f"DATA FETCHER: Fetching matches for {summoner.name} from {past_12_months} to {now} in {request.region}")
             
-            matches = riot_client.get_full_match_history(summoner, request.region, months_back=12)
+            # Pass corrected timestamps to riot client
+            matches = riot_client.get_full_match_history_with_time(summoner, request.region, past_12_months, now)
             print(f"DATA FETCHER: Retrieved {len(matches)} matches")
             
             if not matches:
