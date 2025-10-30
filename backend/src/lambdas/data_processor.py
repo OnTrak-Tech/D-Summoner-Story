@@ -241,24 +241,72 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             matches = load_matches_from_s3(s3_client, raw_data_bucket, summoner_id)
             
             if not matches:
-                # Update job as failed
+                # Create default empty statistics for players with no matches
+                from shared.models import PlayerStatistics, ChampionStats
+                
+                default_stats = PlayerStatistics(
+                    summoner_name=job_item.get('summoner_name', 'Unknown'),
+                    region=job_item.get('region', 'na1'),
+                    total_games=0,
+                    wins=0,
+                    losses=0,
+                    win_rate=0.0,
+                    total_kills=0,
+                    total_deaths=0,
+                    total_assists=0,
+                    avg_kda=0.0,
+                    champion_stats=[],
+                    monthly_trends=[],
+                    improvement_trend="stable",
+                    consistency_score=0.0,
+                    best_performance_match_id=None,
+                    worst_performance_match_id=None
+                )
+                
+                # Store default statistics
+                player_stats_item = create_player_stats_item(request.session_id, default_stats)
+                dynamodb_client.put_item(player_stats_table, asdict(player_stats_item))
+                
+                # Invoke insight generator with empty stats
+                try:
+                    import boto3
+                    lambda_client = boto3.client('lambda')
+                    insight_function_name = os.environ.get('INSIGHT_GENERATOR_FUNCTION_NAME')
+                    
+                    if insight_function_name:
+                        lambda_client.invoke(
+                            FunctionName=insight_function_name,
+                            InvocationType='Event',
+                            Payload=json.dumps({'session_id': request.session_id})
+                        )
+                        logger.info(f"Invoked insight generator for session {request.session_id} (no matches)")
+                except Exception as e:
+                    logger.error(f"Failed to invoke insight generator: {e}")
+                
+                # Update job as completed with message
                 dynamodb_client.update_item(
                     processing_jobs_table,
                     {"PK": f"JOB#{request.job_id}"},
-                    "SET #status = :status, #error_message = :error",
+                    "SET #status = :status, #progress = :progress, #updated_at = :updated_at, #error_message = :message",
                     {
-                        ":status": "failed",
-                        ":error": "No match data found to process"
+                        ":status": "completed",
+                        ":progress": 100,
+                        ":updated_at": get_current_timestamp(),
+                        ":message": "No match history found in the specified time period"
                     },
                     {
                         "#status": "status",
+                        "#progress": "progress",
+                        "#updated_at": "updated_at",
                         "#error_message": "error_message"
                     }
                 )
                 
-                return format_lambda_response(404, {
-                    "error": "NO_DATA",
-                    "message": "No match data found to process"
+                return format_lambda_response(200, {
+                    "job_id": request.job_id,
+                    "status": "completed",
+                    "session_id": request.session_id,
+                    "message": "No match history found in the specified time period"
                 })
             
             # Update progress
