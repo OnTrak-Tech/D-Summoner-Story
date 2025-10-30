@@ -123,27 +123,42 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             matches = riot_client.get_full_match_history(summoner, request.region, months_back=1)
             
             if not matches:
-                # Update job as completed with insufficient data
-                dynamodb_client.update_item(
-                    processing_jobs_table,
-                    {"PK": job.PK},
-                    "SET #status = :status, #progress = :progress, #error_message = :error",
-                    {
-                        ":status": "completed",
-                        ":progress": 100,
-                        ":error": "No match history found for the past 1 month"
-                    },
-                    {
-                        "#status": "status",
-                        "#progress": "progress",
-                        "#error_message": "error_message"
+                # Store empty match data in S3 for data processor to handle
+                logger.info("No matches found, storing empty data")
+                raw_data = {
+                    "summoner": asdict(summoner),
+                    "matches": [],
+                    "metadata": {
+                        "fetch_timestamp": get_current_timestamp(),
+                        "region": request.region,
+                        "total_matches": 0,
+                        "session_id": request.session_id
                     }
-                )
+                }
+                
+                s3_key = generate_s3_key(summoner.id, "raw-matches")
+                s3_client.put_object(raw_data_bucket, s3_key, json.dumps(raw_data, indent=2))
+                
+                # Invoke data processor to handle empty stats
+                try:
+                    import boto3
+                    lambda_client = boto3.client('lambda')
+                    processor_function_name = os.environ.get('DATA_PROCESSOR_FUNCTION_NAME')
+                    
+                    if processor_function_name:
+                        lambda_client.invoke(
+                            FunctionName=processor_function_name,
+                            InvocationType='Event',
+                            Payload=json.dumps({'session_id': request.session_id, 'job_id': job_id})
+                        )
+                        logger.info(f"Invoked data processor for job {job_id} (no matches)")
+                except Exception as e:
+                    logger.error(f"Failed to invoke data processor: {e}")
                 
                 return format_lambda_response(200, {
                     "job_id": job_id,
-                    "status": "completed",
-                    "message": "No match history found",
+                    "status": "processing",
+                    "message": "No match history found, generating default insights",
                     "summoner_info": {
                         "name": summoner.name,
                         "level": summoner.summoner_level,
