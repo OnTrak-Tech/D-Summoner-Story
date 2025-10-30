@@ -51,16 +51,14 @@ def process_match_statistics(matches: List[RiotMatch], summoner_puuid: str) -> P
     if not matches:
         raise ValueError("No matches provided for processing")
     
-    # Find summoner's data in matches
-    summoner_name = ""
-    region = ""
-    
     # Initialize counters
     total_games = len(matches)
     total_wins = 0
     total_kills = 0
     total_deaths = 0
     total_assists = 0
+    summoner_name = ""
+    region = ""
     
     # Champion statistics tracking
     champion_stats: Dict[int, Dict[str, Any]] = {}
@@ -70,17 +68,19 @@ def process_match_statistics(matches: List[RiotMatch], summoner_puuid: str) -> P
     
     # Process each match
     for match in matches:
-        # Find the summoner's participant data
+        # Find the correct summoner's participant data by PUUID
         summoner_participant = None
         for participant in match.participants:
-            # Note: We'd need to match by puuid in a real implementation
-            # For now, we'll use the first participant as a placeholder
-            if not summoner_participant:
+            # Match by summoner_id as proxy for PUUID (in real implementation, use PUUID)
+            if participant.summoner_id == summoner_puuid:
                 summoner_participant = participant
-                summoner_name = f"Summoner_{participant.summoner_id}"  # Placeholder
+                if not summoner_name:  # Set name from first match
+                    summoner_name = f"Player_{participant.summoner_id}"
                 break
         
         if not summoner_participant:
+            # If we can't find the summoner in this match, skip it
+            logger.warning(f"Summoner {summoner_puuid} not found in match {match.match_id}")
             continue
         
         # Update overall statistics
@@ -139,6 +139,13 @@ def process_match_statistics(matches: List[RiotMatch], summoner_puuid: str) -> P
         month_data['kills'] += summoner_participant.kills
         month_data['deaths'] += summoner_participant.deaths
         month_data['assists'] += summoner_participant.assists
+    
+    # Recalculate total_games based on matches where summoner was found
+    actual_games = sum(1 for match in matches if any(p.summoner_id == summoner_puuid for p in match.participants))
+    total_games = actual_games
+    
+    if total_games == 0:
+        raise ValueError(f"No matches found for summoner {summoner_puuid}")
     
     # Calculate overall statistics
     win_rate = calculate_win_rate(total_wins, total_games)

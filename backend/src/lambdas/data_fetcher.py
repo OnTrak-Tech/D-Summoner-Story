@@ -120,7 +120,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
             # Step 2: Get match history (reduced for dev API key limits)
             logger.info(f"Fetching match history for {summoner.name}")
-            matches = riot_client.get_full_match_history(summoner, request.region, months_back=1)
+            matches = riot_client.get_full_match_history(summoner, request.region, months_back=12)
             
             if not matches:
                 # Update job as completed with insufficient data
