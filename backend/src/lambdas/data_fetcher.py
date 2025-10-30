@@ -131,7 +131,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     {
                         ":status": "completed",
                         ":progress": 100,
-                        ":error": "No match history found for the past 1 month"
+                        ":error": "No match history found for the past 12 months"
                     },
                     {
                         "#status": "status",
