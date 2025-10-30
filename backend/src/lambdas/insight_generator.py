@@ -4,6 +4,8 @@ Uses Amazon Bedrock to generate AI-powered narrative recaps from player statisti
 Creates engaging, personalized insights in the style of Spotify Wrapped.
 """
 
+print("INSIGHT GENERATOR STARTING...")
+
 import json
 import os
 from typing import Any, Dict
@@ -151,20 +153,25 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     4. Cache generated insights in S3
     5. Return formatted insights for frontend
     """
+    print(f"INSIGHT GENERATOR HANDLER STARTED: {event}")
     logger.info(f"Insight generator invoked with event: {json.dumps(event)}")
     
     try:
         # Parse session ID from direct invocation, path parameters, or body
         session_id = None
         
+        print("INSIGHT GENERATOR: Parsing session ID...")
+        
         # Direct Lambda invocation (from data processor)
         if 'session_id' in event:
             session_id = event['session_id']
+            print(f"INSIGHT GENERATOR: Session ID from direct invocation: {session_id}")
             logger.info(f"Session ID from direct invocation: {session_id}")
         
         # API Gateway invocation
         elif 'pathParameters' in event and event['pathParameters']:
             session_id = event['pathParameters'].get('sessionId')
+            print(f"INSIGHT GENERATOR: Session ID from path parameters: {session_id}")
             logger.info(f"Session ID from path parameters: {session_id}")
         
         # Body parameter
@@ -175,42 +182,82 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             else:
                 payload = body
             session_id = payload.get('session_id')
+            print(f"INSIGHT GENERATOR: Session ID from body: {session_id}")
             logger.info(f"Session ID from body: {session_id}")
         
         if not session_id:
+            print(f"INSIGHT GENERATOR: ERROR - No session ID found in event: {event}")
             logger.error(f"No session ID found in event: {event}")
             return format_lambda_response(400, {
                 "error": "MISSING_SESSION_ID",
                 "message": "Session ID is required"
             })
         
+        print("INSIGHT GENERATOR: Initializing AWS clients...")
+        
         # Initialize AWS clients
-        dynamodb_client = get_dynamodb_client()
-        bedrock_client = get_bedrock_client()
-        s3_client = get_s3_client()
+        try:
+            dynamodb_client = get_dynamodb_client()
+            print("INSIGHT GENERATOR: DynamoDB client initialized")
+        except Exception as e:
+            print(f"INSIGHT GENERATOR: ERROR - Failed to initialize DynamoDB client: {e}")
+            raise
+        
+        try:
+            bedrock_client = get_bedrock_client()
+            print("INSIGHT GENERATOR: Bedrock client initialized")
+        except Exception as e:
+            print(f"INSIGHT GENERATOR: ERROR - Failed to initialize Bedrock client: {e}")
+            raise
+        
+        try:
+            s3_client = get_s3_client()
+            print("INSIGHT GENERATOR: S3 client initialized")
+        except Exception as e:
+            print(f"INSIGHT GENERATOR: ERROR - Failed to initialize S3 client: {e}")
+            raise
         
         # Get table and bucket names
-        player_stats_table = get_table_name("PLAYER_STATS")
-        processed_insights_bucket = get_bucket_name("PROCESSED_INSIGHTS")
+        try:
+            player_stats_table = get_table_name("PLAYER_STATS")
+            processed_insights_bucket = get_bucket_name("PROCESSED_INSIGHTS")
+            print(f"INSIGHT GENERATOR: Table: {player_stats_table}, Bucket: {processed_insights_bucket}")
+        except Exception as e:
+            print(f"INSIGHT GENERATOR: ERROR - Failed to get table/bucket names: {e}")
+            raise
         
+        print(f"INSIGHT GENERATOR: Generating insights for session {session_id}")
         logger.info(f"Generating insights for session {session_id}")
         
         # Check if insights already exist in S3 (caching)
         insights_key = f"insights/{session_id}/narrative.json"
-        existing_insights = s3_client.get_object(processed_insights_bucket, insights_key)
+        print(f"INSIGHT GENERATOR: Checking for cached insights at key: {insights_key}")
         
-        if existing_insights:
-            logger.info(f"Found cached insights for session {session_id}")
-            return format_lambda_response(200, json.loads(existing_insights))
+        try:
+            existing_insights = s3_client.get_object(processed_insights_bucket, insights_key)
+            if existing_insights:
+                print(f"INSIGHT GENERATOR: Found cached insights for session {session_id}")
+                logger.info(f"Found cached insights for session {session_id}")
+                return format_lambda_response(200, json.loads(existing_insights))
+        except Exception as e:
+            print(f"INSIGHT GENERATOR: No cached insights found (expected): {e}")
         
         # Load player statistics from DynamoDB by scanning for session_id
-        scan_result = dynamodb_client.scan_table(
-            player_stats_table,
-            filter_expression="session_id = :session_id",
-            expression_values={":session_id": session_id}
-        )
+        print(f"INSIGHT GENERATOR: Scanning DynamoDB table {player_stats_table} for session_id: {session_id}")
+        
+        try:
+            scan_result = dynamodb_client.scan_table(
+                player_stats_table,
+                filter_expression="session_id = :session_id",
+                expression_values={":session_id": session_id}
+            )
+            print(f"INSIGHT GENERATOR: Scan result: {scan_result}")
+        except Exception as e:
+            print(f"INSIGHT GENERATOR: ERROR - DynamoDB scan failed: {e}")
+            raise
         
         if not scan_result:
+            print(f"INSIGHT GENERATOR: No statistics found for session {session_id}")
             return format_lambda_response(404, {
                 "error": "NO_INSIGHTS",
                 "message": f"No insights found for session {session_id}. Generate insights first."
@@ -243,14 +290,30 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         try:
             # Generate narrative using Bedrock
+            print("INSIGHT GENERATOR: Generating narrative with Bedrock...")
             logger.info("Generating narrative with Bedrock")
-            narrative_prompt = create_narrative_prompt(mock_stats)
-            narrative = bedrock_client.invoke_claude(narrative_prompt, max_tokens=500)
+            
+            try:
+                narrative_prompt = create_narrative_prompt(mock_stats)
+                print(f"INSIGHT GENERATOR: Created narrative prompt (length: {len(narrative_prompt)})")
+                
+                narrative = bedrock_client.invoke_claude(narrative_prompt, max_tokens=500)
+                print(f"INSIGHT GENERATOR: Generated narrative (length: {len(narrative)})")
+            except Exception as e:
+                print(f"INSIGHT GENERATOR: ERROR - Bedrock narrative generation failed: {e}")
+                raise
             
             # Generate highlights
+            print("INSIGHT GENERATOR: Generating highlights...")
             logger.info("Generating highlights")
-            highlights_prompt = create_highlights_prompt(mock_stats)
-            highlights_response = bedrock_client.invoke_claude(highlights_prompt, max_tokens=300)
+            
+            try:
+                highlights_prompt = create_highlights_prompt(mock_stats)
+                highlights_response = bedrock_client.invoke_claude(highlights_prompt, max_tokens=300)
+                print(f"INSIGHT GENERATOR: Generated highlights response (length: {len(highlights_response)})")
+            except Exception as e:
+                print(f"INSIGHT GENERATOR: ERROR - Bedrock highlights generation failed: {e}")
+                raise
             
             # Parse highlights (expecting JSON array)
             try:
@@ -313,17 +376,25 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             }
             
             # Cache insights in S3
-            s3_client.put_object(
-                processed_insights_bucket,
-                insights_key,
-                json.dumps(insight_data, indent=2)
-            )
+            print(f"INSIGHT GENERATOR: Caching insights to S3 key: {insights_key}")
+            try:
+                s3_client.put_object(
+                    processed_insights_bucket,
+                    insights_key,
+                    json.dumps(insight_data, indent=2)
+                )
+                print("INSIGHT GENERATOR: Successfully cached insights to S3")
+            except Exception as e:
+                print(f"INSIGHT GENERATOR: ERROR - Failed to cache insights to S3: {e}")
+                # Continue anyway, don't fail the whole function
             
+            print(f"INSIGHT GENERATOR: Successfully generated insights for session {session_id}")
             logger.info(f"Successfully generated and cached insights for session {session_id}")
             
             return format_lambda_response(200, insight_data)
             
         except AWSClientError as e:
+            print(f"INSIGHT GENERATOR: AWS service error: {e}")
             logger.error(f"AWS service error: {e}")
             return format_lambda_response(503, {
                 "error": "SERVICE_ERROR",
@@ -332,6 +403,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             })
             
     except Exception as e:
+        print(f"INSIGHT GENERATOR: Unexpected error: {e}")
         logger.error(f"Unexpected error in insight generator: {e}", exc_info=True)
         
         return format_lambda_response(500, {
