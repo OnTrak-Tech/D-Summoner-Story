@@ -97,6 +97,41 @@ def load_matches_from_s3(s3_client, bucket: str, summoner_id: str) -> List[RiotM
         raise
 
 
+def invoke_insight_generator(session_id: str):
+    """Invoke insight generator Lambda with error handling"""
+    import boto3
+    
+    lambda_client = boto3.client('lambda')
+    insight_function_name = os.environ.get('INSIGHT_GENERATOR_FUNCTION_NAME')
+    
+    logger.info(f"Attempting to invoke insight generator: {insight_function_name}")
+    
+    if not insight_function_name:
+        logger.error("INSIGHT_GENERATOR_FUNCTION_NAME environment variable not set")
+        return
+    
+    payload = json.dumps({'session_id': session_id})
+    logger.info(f"Invoking with payload: {payload}")
+    
+    try:
+        response = lambda_client.invoke(
+            FunctionName=insight_function_name,
+            InvocationType='RequestResponse',
+            Payload=payload
+        )
+        
+        response_payload = json.loads(response['Payload'].read())
+        logger.info(f"Insight generator response: {response_payload}")
+        
+        if response.get('FunctionError'):
+            logger.error(f"Insight generator error: {response_payload}")
+        else:
+            logger.info(f"Successfully invoked insight generator for session {session_id}")
+            
+    except Exception as e:
+        logger.error(f"Failed to invoke insight generator: {e}", exc_info=True)
+
+
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     Lambda handler for data processing.
@@ -242,7 +277,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
             if not matches:
                 # Create default empty statistics for players with no matches
-                from shared.models import PlayerStatistics, ChampionStats
+                from shared.models import PlayerStatistics
                 
                 default_stats = PlayerStatistics(
                     summoner_name=job_item.get('summoner_name', 'Unknown'),
@@ -266,22 +301,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 # Store default statistics
                 player_stats_item = create_player_stats_item(request.session_id, default_stats)
                 dynamodb_client.put_item(player_stats_table, asdict(player_stats_item))
+                logger.info(f"Stored default statistics for session {request.session_id}")
                 
-                # Invoke insight generator with empty stats
-                try:
-                    import boto3
-                    lambda_client = boto3.client('lambda')
-                    insight_function_name = os.environ.get('INSIGHT_GENERATOR_FUNCTION_NAME')
-                    
-                    if insight_function_name:
-                        lambda_client.invoke(
-                            FunctionName=insight_function_name,
-                            InvocationType='Event',
-                            Payload=json.dumps({'session_id': request.session_id})
-                        )
-                        logger.info(f"Invoked insight generator for session {request.session_id} (no matches)")
-                except Exception as e:
-                    logger.error(f"Failed to invoke insight generator: {e}")
+                # Invoke insight generator
+                invoke_insight_generator(request.session_id)
                 
                 # Update job as completed with message
                 dynamodb_client.update_item(
@@ -337,23 +360,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             # Store processed statistics in DynamoDB
             dynamodb_client.put_item(player_stats_table, asdict(player_stats_item))
             
-            # Invoke insight generator Lambda
-            try:
-                import boto3
-                lambda_client = boto3.client('lambda')
-                insight_function_name = os.environ.get('INSIGHT_GENERATOR_FUNCTION_NAME')
-                
-                if insight_function_name:
-                    lambda_client.invoke(
-                        FunctionName=insight_function_name,
-                        InvocationType='Event',
-                        Payload=json.dumps({'session_id': request.session_id})
-                    )
-                    logger.info(f"Invoked insight generator for session {request.session_id}")
-                else:
-                    logger.warning("INSIGHT_GENERATOR_FUNCTION_NAME not set")
-            except Exception as e:
-                logger.error(f"Failed to invoke insight generator: {e}")
+            # Invoke insight generator
+            invoke_insight_generator(request.session_id)
             
             # Update job as completed
             dynamodb_client.update_item(

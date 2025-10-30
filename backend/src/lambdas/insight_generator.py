@@ -151,22 +151,34 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     4. Cache generated insights in S3
     5. Return formatted insights for frontend
     """
+    logger.info(f"Insight generator invoked with event: {json.dumps(event)}")
+    
     try:
-        # Parse session ID from path parameters or body
+        # Parse session ID from direct invocation, path parameters, or body
         session_id = None
         
-        if 'pathParameters' in event and event['pathParameters']:
-            session_id = event['pathParameters'].get('sessionId')
+        # Direct Lambda invocation (from data processor)
+        if 'session_id' in event:
+            session_id = event['session_id']
+            logger.info(f"Session ID from direct invocation: {session_id}")
         
-        if not session_id:
+        # API Gateway invocation
+        elif 'pathParameters' in event and event['pathParameters']:
+            session_id = event['pathParameters'].get('sessionId')
+            logger.info(f"Session ID from path parameters: {session_id}")
+        
+        # Body parameter
+        elif 'body' in event:
             body = event.get("body", "{}")
             if isinstance(body, str):
                 payload = json.loads(body)
             else:
                 payload = body
             session_id = payload.get('session_id')
+            logger.info(f"Session ID from body: {session_id}")
         
         if not session_id:
+            logger.error(f"No session ID found in event: {event}")
             return format_lambda_response(400, {
                 "error": "MISSING_SESSION_ID",
                 "message": "Session ID is required"
