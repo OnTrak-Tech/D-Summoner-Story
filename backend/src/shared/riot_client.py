@@ -279,10 +279,16 @@ class RiotAPIClient:
         if params:
             url += '?' + '&'.join([f"{k}={v}" for k, v in params.items()])
         
+        print(f"RIOT CLIENT: Calling match history API: {url}")
+        logger.info(f"Match history API call: {url}")
+        
         try:
             match_ids = self._make_request(url)
+            print(f"RIOT CLIENT: API returned {len(match_ids)} match IDs")
+            logger.info(f"Match history API returned {len(match_ids)} match IDs")
             return match_ids
         except Exception as e:
+            print(f"RIOT CLIENT: Match history API failed: {e}")
             logger.error(f"Failed to get match history for {puuid}: {e}")
             raise
     
@@ -339,56 +345,51 @@ class RiotAPIClient:
     def get_full_match_history(self, summoner: RiotSummoner, region: str, 
                               months_back: int = 12) -> List[RiotMatch]:
         """Get full match history for a summoner over specified months"""
-        # Calculate time range (last N months)
-        now = int(time.time())
-        past_12_months = now - (months_back * 30 * 24 * 60 * 60)  # months_back months ago
+        print(f"RIOT CLIENT: Starting match history fetch for {summoner.name}")
         
         all_matches = []
-        start_index = 0
-        batch_size = 100
         
         try:
-            while True:
-                # Get batch of match IDs
+            # First try without time filters to see if we get any matches
+            print(f"RIOT CLIENT: Trying without time filters first")
+            match_ids = self.get_match_history(summoner.puuid, region, count=20)
+            print(f"RIOT CLIENT: Got {len(match_ids)} matches without time filters")
+            
+            if not match_ids:
+                # If no matches without filters, try with time range
+                print(f"RIOT CLIENT: No matches found, trying with time filters")
+                now = int(time.time())
+                past_months = now - (months_back * 30 * 24 * 60 * 60)
+                
                 match_ids = self.get_match_history(
                     summoner.puuid, 
                     region, 
-                    count=batch_size,
-                    start_time=past_12_months * 1000,  # Convert to milliseconds
+                    count=100,
+                    start_time=past_months * 1000,
                     end_time=now * 1000
                 )
-                
-                if not match_ids:
-                    break
-                
-                # Get detailed match data
-                for match_id in match_ids:
-                    try:
-                        match_details = self.get_match_details(match_id, region)
-                        all_matches.append(match_details)
-                        
-                        # Add small delay to avoid rate limiting
-                        time.sleep(0.1)
-                        
-                    except Exception as e:
-                        logger.warning(f"Failed to get details for match {match_id}: {e}")
-                        continue
-                
-                # If we got fewer matches than requested, we've reached the end
-                if len(match_ids) < batch_size:
-                    break
-                
-                start_index += batch_size
-                
-                # Safety limit to avoid infinite loops
-                if len(all_matches) >= 1000:
-                    logger.warning("Reached maximum match limit (1000)")
-                    break
+                print(f"RIOT CLIENT: Got {len(match_ids)} matches with time filters")
             
+            if not match_ids:
+                print(f"RIOT CLIENT: No matches found with any method")
+                return []
+            
+            # Get detailed match data for first few matches
+            for match_id in match_ids[:20]:  # Limit to 20 matches for testing
+                try:
+                    match_details = self.get_match_details(match_id, region)
+                    all_matches.append(match_details)
+                    time.sleep(0.1)  # Rate limiting
+                except Exception as e:
+                    logger.warning(f"Failed to get details for match {match_id}: {e}")
+                    continue
+            
+            print(f"RIOT CLIENT: Successfully retrieved {len(all_matches)} match details")
             logger.info(f"Retrieved {len(all_matches)} matches for {summoner.name}")
             return all_matches
             
         except Exception as e:
+            print(f"RIOT CLIENT: Error in get_full_match_history: {e}")
             logger.error(f"Failed to get full match history: {e}")
             raise
 
