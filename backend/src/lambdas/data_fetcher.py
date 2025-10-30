@@ -27,6 +27,7 @@ from shared.utils import (
 setup_logging(os.environ.get('LOG_LEVEL', 'INFO'))
 logger = logging.getLogger(__name__)
 
+print("DATA FETCHER: Starting...")
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
@@ -39,6 +40,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     4. Store raw match data in S3
     5. Update processing job status in DynamoDB
     """
+    print(f"DATA FETCHER: Handler started with event: {event}")
+    
     try:
         # Parse request body
         body = event.get("body", "{}")
@@ -47,10 +50,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         else:
             payload = body
         
+        print(f"DATA FETCHER: Parsed payload: {payload}")
+        
         # Validate request
         try:
             request = FetchRequest(**payload)
+            print(f"DATA FETCHER: Valid request for {request.summoner_name} in {request.region}")
         except Exception as e:
+            print(f"DATA FETCHER: Invalid request format: {e}")
             logger.error(f"Invalid request format: {e}")
             return format_lambda_response(400, {
                 "error": "INVALID_REQUEST",
@@ -60,6 +67,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         # Validate region
         if not validate_region(request.region):
+            print(f"DATA FETCHER: Invalid region: {request.region}")
             return format_lambda_response(400, {
                 "error": "INVALID_REGION",
                 "message": f"Region '{request.region}' is not supported"
@@ -67,8 +75,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         # Sanitize summoner name
         summoner_name = sanitize_summoner_name(request.summoner_name)
+        print(f"DATA FETCHER: Sanitized summoner name: {summoner_name}")
         
         # Initialize AWS clients
+        print("DATA FETCHER: Initializing clients...")
         riot_client = get_riot_client()
         s3_client = get_s3_client()
         dynamodb_client = get_dynamodb_client()
@@ -76,16 +86,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Get bucket and table names
         raw_data_bucket = get_bucket_name("RAW_DATA")
         processing_jobs_table = get_table_name("PROCESSING_JOBS")
+        print(f"DATA FETCHER: Using bucket: {raw_data_bucket}, table: {processing_jobs_table}")
         
         # Create processing job
         job = create_processing_job(request.session_id, summoner_name, request.region)
         job_id = job.PK.split('#')[1]
+        print(f"DATA FETCHER: Created job {job_id}")
         
         # Store initial job in DynamoDB
         dynamodb_client.put_item(processing_jobs_table, job.model_dump())
 
         
         logger.info(f"Starting data fetch for Riot ID {request.summoner_name} in {request.region}")
+        print(f"DATA FETCHER: Starting data fetch for Riot ID {request.summoner_name} in {request.region}")
         
         # Update job status to fetching
         dynamodb_client.update_item(
@@ -107,7 +120,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         try:
             # Step 1: Get summoner information
             logger.info(f"Fetching summoner info for {summoner_name}")
+            print(f"DATA FETCHER: Fetching summoner info for {summoner_name}")
             summoner = riot_client.get_summoner_by_name(summoner_name, request.region)
+            print(f"DATA FETCHER: Got summoner: {summoner.name} (ID: {summoner.id}, PUUID: {summoner.puuid})")
             
             # Update progress
             dynamodb_client.update_item(
@@ -120,9 +135,20 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
             # Step 2: Get match history (reduced for dev API key limits)
             logger.info(f"Fetching match history for {summoner.name}")
+            print(f"DATA FETCHER: Fetching match history for {summoner.name}")
+            
+            # Add detailed logging for match history
+            import time
+            current_time = int(time.time())
+            start_time = current_time - (12 * 30 * 24 * 60 * 60)  # 12 months back
+            logger.info(f"Fetching matches for {summoner.name} from {start_time} to {current_time} in {request.region}")
+            print(f"DATA FETCHER: Fetching matches for {summoner.name} from {start_time} to {current_time} in {request.region}")
+            
             matches = riot_client.get_full_match_history(summoner, request.region, months_back=12)
+            print(f"DATA FETCHER: Retrieved {len(matches)} matches")
             
             if not matches:
+                print("DATA FETCHER: No matches found - updating job status")
                 # Update job as completed with insufficient data
                 dynamodb_client.update_item(
                     processing_jobs_table,
@@ -162,6 +188,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
             # Step 3: Store raw data in S3
             logger.info(f"Storing {len(matches)} matches in S3")
+            print(f"DATA FETCHER: Storing {len(matches)} matches in S3")
             
             # Prepare data for storage
             raw_data = {
@@ -218,12 +245,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         })
                     )
                     logger.info(f"Invoked data processor for job {job_id}")
+                    print(f"DATA FETCHER: Invoked data processor for job {job_id}")
                 else:
                     logger.warning("DATA_PROCESSOR_FUNCTION_NAME not set, skipping processor invocation")
+                    print("DATA FETCHER: DATA_PROCESSOR_FUNCTION_NAME not set")
             except Exception as e:
                 logger.error(f"Failed to invoke data processor: {e}")
+                print(f"DATA FETCHER: Failed to invoke data processor: {e}")
             
             logger.info(f"Successfully fetched and stored data for {summoner.name}")
+            print(f"DATA FETCHER: Successfully completed for {summoner.name}")
             
             return format_lambda_response(200, {
                 "job_id": job_id,
@@ -240,6 +271,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             })
             
         except SummonerNotFound:
+            print("DATA FETCHER: Summoner not found")
             # Update job with error
             dynamodb_client.update_item(
                 processing_jobs_table,
@@ -261,6 +293,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             })
             
         except RiotAPIError as e:
+            print(f"DATA FETCHER: Riot API error: {e}")
             # Update job with error
             dynamodb_client.update_item(
                 processing_jobs_table,
@@ -284,6 +317,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             })
             
     except Exception as e:
+        print(f"DATA FETCHER: Unexpected error: {e}")
         logger.error(f"Unexpected error in data fetcher: {e}", exc_info=True)
         
         # Try to update job status if possible
