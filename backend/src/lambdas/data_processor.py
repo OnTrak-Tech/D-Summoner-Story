@@ -263,17 +263,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         )
         
         try:
-            # Extract summoner ID from S3 key in job data
-            # Get the S3 key from the raw data to extract summoner ID
-            raw_data_objects = s3_client.list_objects(raw_data_bucket, "raw-matches/")
-            if not raw_data_objects:
-                raise Exception("No raw match data found")
+            # Get PUUID from payload (passed from data_fetcher)
+            summoner_puuid = payload.get('summoner_puuid')
+            if not summoner_puuid:
+                raise Exception("Missing summoner_puuid in payload")
             
-            # Find the most recent S3 key and extract summoner ID
-            latest_key = sorted(raw_data_objects)[-1]
-            summoner_id = latest_key.split('/')[1]  # Extract from raw-matches/{summoner_id}/...
-            
-            matches = load_matches_from_s3(s3_client, raw_data_bucket, summoner_id)
+            matches = load_matches_from_s3(s3_client, raw_data_bucket, summoner_puuid)
             
             if not matches:
                 # Create default empty statistics for players with no matches
@@ -343,7 +338,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
             # Process matches into statistics
             logger.info(f"Processing {len(matches)} matches")
-            processed_stats = process_match_statistics(matches, summoner_id)
+            processed_stats = process_match_statistics(matches, summoner_puuid)
             
             # Update progress
             dynamodb_client.update_item(

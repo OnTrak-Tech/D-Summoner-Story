@@ -203,7 +203,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             }
             
             # Generate S3 key
-            s3_key = generate_s3_key(summoner.id, "raw-matches")
+            s3_key = generate_s3_key(summoner.puuid, "raw-matches")
             
             # Store in S3
             s3_client.put_object(
