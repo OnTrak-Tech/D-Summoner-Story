@@ -28,7 +28,7 @@ setup_logging(os.environ.get('LOG_LEVEL', 'INFO'))
 logger = logging.getLogger(__name__)
 
 
-def load_matches_from_s3(s3_client, bucket: str, summoner_id: str) -> List[RiotMatch]:
+def load_matches_from_s3(s3_client, bucket: str, summoner_puuid: str) -> List[RiotMatch]:
     """Load and parse match data from S3"""
     try:
         # List objects for this summoner
@@ -277,14 +277,15 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
             if not matches:
                 # Create default empty statistics for players with no matches
-                from shared.models import PlayerStatistics
+                from shared.models import ProcessedStats
                 
-                default_stats = PlayerStatistics(
+                default_stats = ProcessedStats(
+                    summoner_id=summoner_puuid,
                     summoner_name=job_item.get('summoner_name', 'Unknown'),
                     region=job_item.get('region', 'na1'),
                     total_games=0,
-                    wins=0,
-                    losses=0,
+                    total_wins=0,
+                    total_losses=0,
                     win_rate=0.0,
                     total_kills=0,
                     total_deaths=0,
@@ -292,10 +293,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     avg_kda=0.0,
                     champion_stats=[],
                     monthly_trends=[],
-                    improvement_trend="stable",
-                    consistency_score=0.0,
-                    best_performance_match_id=None,
-                    worst_performance_match_id=None
+                    most_played_champion=None,
+                    highest_winrate_champion=None,
+                    best_kda_champion=None,
+                    improvement_trend=0.0,
+                    consistency_score=0.0
                 )
                 
                 # Store default statistics
@@ -332,6 +334,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     "message": "No match history found in the specified time period"
                 })
             
+            # Load summoner data from S3 to get summoner ID for participant matching
+            prefix = f"raw-matches/{summoner_puuid}/"
+            object_keys = s3_client.list_objects(raw_data_bucket, prefix)
+            latest_key = sorted(object_keys)[-1]
+            raw_data_str = s3_client.get_object(raw_data_bucket, latest_key)
+            raw_data = json.loads(raw_data_str)
+            summoner_id = raw_data.get('summoner', {}).get('id', '')
+            
             # Update progress
             dynamodb_client.update_item(
                 processing_jobs_table,
@@ -341,9 +351,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 {"#progress": "progress"}
             )
             
-            # Process matches into statistics
-            logger.info(f"Processing {len(matches)} matches")
-            processed_stats = process_match_statistics(matches, summoner_puuid)
+            # Process matches into statistics using summoner ID for participant matching
+            logger.info(f"Processing {len(matches)} matches for summoner ID {summoner_id}")
+            processed_stats = process_match_statistics(matches, summoner_id)
             
             # Update progress
             dynamodb_client.update_item(
