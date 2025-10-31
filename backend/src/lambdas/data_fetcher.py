@@ -241,7 +241,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         InvocationType='Event',  # Async
                         Payload=json.dumps({
                             'session_id': request.session_id,
-                            'job_id': job_id
+                            'job_id': job_id,
+                            'summoner_puuid': summoner.puuid
                         })
                     )
                     logger.info(f"Invoked data processor for job {job_id}")
