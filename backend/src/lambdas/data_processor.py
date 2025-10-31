@@ -205,11 +205,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             })
         
         # Direct invocation for processing
-        body = event.get("body", "{}")
-        if isinstance(body, str):
-            payload = json.loads(body)
+        if 'body' in event:
+            # API Gateway invocation
+            body = event.get("body", "{}")
+            if isinstance(body, str):
+                payload = json.loads(body)
+            else:
+                payload = body
         else:
-            payload = body
+            # Direct Lambda invocation - payload is in event root
+            payload = event
         
         # Validate request
         try:
