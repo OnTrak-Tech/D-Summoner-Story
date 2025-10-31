@@ -32,11 +32,11 @@ def load_matches_from_s3(s3_client, bucket: str, summoner_puuid: str) -> List[Ri
     """Load and parse match data from S3"""
     try:
         # List objects for this summoner
-        prefix = f"raw-matches/{summoner_id}/"
+        prefix = f"raw-matches/{summoner_puuid}/"
         object_keys = s3_client.list_objects(bucket, prefix)
         
         if not object_keys:
-            logger.warning(f"No match data found for summoner {summoner_id}")
+            logger.warning(f"No match data found for summoner {summoner_puuid}")
             return []
         
         # Get the most recent file (assuming timestamp in filename)
