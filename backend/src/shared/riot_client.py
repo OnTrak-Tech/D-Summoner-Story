@@ -304,11 +304,14 @@ class RiotAPIClient:
         try:
             data = self._make_request(url)
             
-            # Parse participants
+            # Get participant PUUIDs from metadata
+            participant_puuids = data['metadata']['participants']
+            
+            # Parse participants with PUUID mapping
             participants = []
-            for participant_data in data['info']['participants']:
+            for i, participant_data in enumerate(data['info']['participants']):
                 participant = RiotParticipant(
-                    summoner_id=participant_data.get('summonerId', ''),
+                    summoner_id=participant_puuids[i],  # Use PUUID as summoner_id for matching
                     champion_id=participant_data['championId'],
                     champion_name=CHAMPION_NAMES.get(participant_data['championId'], f"Champion_{participant_data['championId']}"),
                     kills=participant_data['kills'],

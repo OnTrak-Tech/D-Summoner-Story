@@ -334,14 +334,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     "message": "No match history found in the specified time period"
                 })
             
-            # Load summoner data from S3 to get summoner ID for participant matching
-            prefix = f"raw-matches/{summoner_puuid}/"
-            object_keys = s3_client.list_objects(raw_data_bucket, prefix)
-            latest_key = sorted(object_keys)[-1]
-            raw_data_str = s3_client.get_object(raw_data_bucket, latest_key)
-            raw_data = json.loads(raw_data_str)
-            summoner_id = raw_data.get('summoner', {}).get('id', '')
-            
             # Update progress
             dynamodb_client.update_item(
                 processing_jobs_table,
@@ -351,9 +343,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 {"#progress": "progress"}
             )
             
-            # Process matches into statistics using summoner ID for participant matching
-            logger.info(f"Processing {len(matches)} matches for summoner ID {summoner_id}")
-            processed_stats = process_match_statistics(matches, summoner_id)
+            # Process matches into statistics using PUUID for participant matching
+            logger.info(f"Processing {len(matches)} matches for summoner PUUID {summoner_puuid}")
+            processed_stats = process_match_statistics(matches, summoner_puuid)
             
             # Update progress
             dynamodb_client.update_item(
