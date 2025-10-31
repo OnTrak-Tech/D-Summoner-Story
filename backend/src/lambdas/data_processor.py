@@ -302,7 +302,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 
                 # Store default statistics
                 player_stats_item = create_player_stats_item(request.session_id, default_stats)
-                dynamodb_client.put_item(player_stats_table, asdict(player_stats_item))
+                dynamodb_client.put_item(player_stats_table, player_stats_item.model_dump())
                 logger.info(f"Stored default statistics for session {request.session_id}")
                 
                 # Invoke insight generator
@@ -360,7 +360,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             player_stats_item = create_player_stats_item(request.session_id, processed_stats)
             
             # Store processed statistics in DynamoDB
-            dynamodb_client.put_item(player_stats_table, asdict(player_stats_item))
+            dynamodb_client.put_item(player_stats_table, player_stats_item.model_dump())
             
             # Invoke insight generator
             invoke_insight_generator(request.session_id)
