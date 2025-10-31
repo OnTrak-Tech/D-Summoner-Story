@@ -30,20 +30,27 @@ logger = logging.getLogger(__name__)
 
 def load_matches_from_s3(s3_client, bucket: str, summoner_puuid: str) -> List[RiotMatch]:
     """Load and parse match data from S3"""
+    print(f"DATA PROCESSOR: load_matches_from_s3 called with bucket: {bucket}, puuid: {summoner_puuid}")
     try:
         # List objects for this summoner
         prefix = f"raw-matches/{summoner_puuid}/"
+        print(f"DATA PROCESSOR: Listing S3 objects with prefix: {prefix}")
         object_keys = s3_client.list_objects(bucket, prefix)
+        print(f"DATA PROCESSOR: Found {len(object_keys) if object_keys else 0} objects")
         
         if not object_keys:
+            print(f"DATA PROCESSOR: No match data found for summoner {summoner_puuid}")
             logger.warning(f"No match data found for summoner {summoner_puuid}")
             return []
         
         # Get the most recent file (assuming timestamp in filename)
         latest_key = sorted(object_keys)[-1]
+        print(f"DATA PROCESSOR: Using latest S3 key: {latest_key}")
         
         # Load the data
+        print(f"DATA PROCESSOR: Loading data from S3 key: {latest_key}")
         raw_data_str = s3_client.get_object(bucket, latest_key)
+        print(f"DATA PROCESSOR: Loaded {len(raw_data_str) if raw_data_str else 0} characters from S3")
         if not raw_data_str:
             logger.error(f"Failed to load data from S3 key: {latest_key}")
             return []
@@ -147,6 +154,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     logger.info(f"Data processor handler started with event: {event}")
     
     try:
+        print("DATA PROCESSOR: Starting main processing logic...")
+        
         # Handle both direct invocation and API Gateway
         if 'pathParameters' in event:
             print("STATUS CHECK: Detected API Gateway invocation")
@@ -204,8 +213,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 "updated_at": job_item.get('updated_at')
             })
         
+        print("DATA PROCESSOR: Processing direct invocation...")
+        
         # Direct invocation for processing
         if 'body' in event:
+            print("DATA PROCESSOR: Found body in event, parsing as API Gateway invocation")
             # API Gateway invocation
             body = event.get("body", "{}")
             if isinstance(body, str):
@@ -213,13 +225,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             else:
                 payload = body
         else:
+            print("DATA PROCESSOR: No body found, treating as direct Lambda invocation")
             # Direct Lambda invocation - payload is in event root
             payload = event
         
+        print(f"DATA PROCESSOR: Extracted payload: {payload}")
+        
         # Validate request
+        print("DATA PROCESSOR: Validating request format...")
         try:
             request = ProcessRequest(**payload)
+            print(f"DATA PROCESSOR: Valid request - session_id: {request.session_id}, job_id: {request.job_id}")
         except Exception as e:
+            print(f"DATA PROCESSOR: Invalid request format: {e}")
             logger.error(f"Invalid request format: {e}")
             return format_lambda_response(400, {
                 "error": "INVALID_REQUEST",
@@ -228,21 +246,41 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             })
         
         # Initialize AWS clients
-        s3_client = get_s3_client()
-        dynamodb_client = get_dynamodb_client()
+        print("DATA PROCESSOR: Initializing AWS clients...")
+        try:
+            s3_client = get_s3_client()
+            print("DATA PROCESSOR: S3 client initialized")
+            dynamodb_client = get_dynamodb_client()
+            print("DATA PROCESSOR: DynamoDB client initialized")
+        except Exception as e:
+            print(f"DATA PROCESSOR: Failed to initialize AWS clients: {e}")
+            raise
         
         # Get bucket and table names
-        raw_data_bucket = get_bucket_name("RAW_DATA")
-        player_stats_table = get_table_name("PLAYER_STATS")
-        processing_jobs_table = get_table_name("PROCESSING_JOBS")
+        print("DATA PROCESSOR: Getting bucket and table names...")
+        try:
+            raw_data_bucket = get_bucket_name("RAW_DATA")
+            player_stats_table = get_table_name("PLAYER_STATS")
+            processing_jobs_table = get_table_name("PROCESSING_JOBS")
+            print(f"DATA PROCESSOR: Using bucket: {raw_data_bucket}, tables: {player_stats_table}, {processing_jobs_table}")
+        except Exception as e:
+            print(f"DATA PROCESSOR: Failed to get bucket/table names: {e}")
+            raise
         
         logger.info(f"Starting data processing for job {request.job_id}")
+        print(f"DATA PROCESSOR: Starting data processing for job {request.job_id}")
         
         # Get job information
-        job_item = dynamodb_client.get_item(
-            processing_jobs_table,
-            {"PK": f"JOB#{request.job_id}"}
-        )
+        print(f"DATA PROCESSOR: Getting job information for JOB#{request.job_id}")
+        try:
+            job_item = dynamodb_client.get_item(
+                processing_jobs_table,
+                {"PK": f"JOB#{request.job_id}"}
+            )
+            print(f"DATA PROCESSOR: Job item retrieved: {job_item is not None}")
+        except Exception as e:
+            print(f"DATA PROCESSOR: Failed to get job item: {e}")
+            raise
         
         if not job_item:
             return format_lambda_response(404, {
@@ -269,11 +307,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         try:
             # Get PUUID from payload (passed from data_fetcher)
+            print("DATA PROCESSOR: Extracting summoner PUUID from payload...")
             summoner_puuid = payload.get('summoner_puuid')
             if not summoner_puuid:
+                print("DATA PROCESSOR: ERROR - Missing summoner_puuid in payload")
                 raise Exception("Missing summoner_puuid in payload")
+            print(f"DATA PROCESSOR: Using summoner PUUID: {summoner_puuid}")
             
+            print("DATA PROCESSOR: Loading matches from S3...")
             matches = load_matches_from_s3(s3_client, raw_data_bucket, summoner_puuid)
+            print(f"DATA PROCESSOR: Loaded {len(matches)} matches from S3")
             
             if not matches:
                 # Create default empty statistics for players with no matches
@@ -424,8 +467,32 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             raise
             
     except Exception as e:
-        print(f"STATUS CHECK: Unexpected error: {e}")
+        print(f"DATA PROCESSOR: CRITICAL ERROR - Unexpected error: {e}")
+        print(f"DATA PROCESSOR: Error type: {type(e).__name__}")
+        import traceback
+        print(f"DATA PROCESSOR: Full traceback: {traceback.format_exc()}")
         logger.error(f"Unexpected error in data processor: {e}", exc_info=True)
+        
+        # Try to update job status if possible
+        try:
+            if 'request' in locals() and 'dynamodb_client' in locals() and 'processing_jobs_table' in locals():
+                print("DATA PROCESSOR: Attempting to update job status to failed")
+                dynamodb_client.update_item(
+                    processing_jobs_table,
+                    {"PK": f"JOB#{request.job_id}"},
+                    "SET #status = :status, #error_message = :error",
+                    {
+                        ":status": "failed",
+                        ":error": f"Processing error: {str(e)}"
+                    },
+                    {
+                        "#status": "status",
+                        "#error_message": "error_message"
+                    }
+                )
+                print("DATA PROCESSOR: Job status updated to failed")
+        except Exception as update_error:
+            print(f"DATA PROCESSOR: Failed to update job status: {update_error}")
         
         return format_lambda_response(500, {
             "error": "INTERNAL_ERROR",
