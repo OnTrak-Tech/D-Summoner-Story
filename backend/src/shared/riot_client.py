@@ -269,7 +269,8 @@ class RiotAPIClient:
         base_url = self.REGIONAL_URLS[regional_platform]
         url = f"{base_url}/lol/match/v5/matches/by-puuid/{puuid}/ids"
         
-        params = {'count': min(count, 100)}  # API limit is 100
+        # API limit is 100 matches per request
+        params = {'count': min(count, 100)}  
         if start_time:
             params['startTime'] = start_time
         if end_time:
@@ -311,7 +312,7 @@ class RiotAPIClient:
             participants = []
             for i, participant_data in enumerate(data['info']['participants']):
                 participant = RiotParticipant(
-                    summoner_id=participant_puuids[i],  # Use PUUID as summoner_id for matching
+                    summoner_id=participant_puuids[i],  
                     champion_id=participant_data['championId'],
                     champion_name=CHAMPION_NAMES.get(participant_data['championId'], f"Champion_{participant_data['championId']}"),
                     kills=participant_data['kills'],
@@ -378,11 +379,12 @@ class RiotAPIClient:
                 return []
             
             # Get detailed match data for first few matches
-            for match_id in match_ids[:20]:  # Limit to 20 matches for testing
+            # Limit to 20 matches for testing
+            for match_id in match_ids[:20]:  
                 try:
                     match_details = self.get_match_details(match_id, region)
                     all_matches.append(match_details)
-                    time.sleep(0.1)  # Rate limiting
+                    time.sleep(0.1)  # Small delay to avoid hitting rate limits
                 except Exception as e:
                     logger.warning(f"Failed to get details for match {match_id}: {e}")
                     continue

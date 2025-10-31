@@ -43,6 +43,18 @@ def get_month_year_from_timestamp(timestamp: int) -> Tuple[str, int]:
     return month_names[dt.month - 1], dt.year
 
 
+def convert_floats_to_decimal(obj):
+    """Recursively convert float values to Decimal for DynamoDB compatibility"""
+    if isinstance(obj, float):
+        return Decimal(str(obj))
+    elif isinstance(obj, dict):
+        return {k: convert_floats_to_decimal(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_floats_to_decimal(item) for item in obj]
+    else:
+        return obj
+
+
 def process_match_statistics(matches: List[RiotMatch], summoner_puuid: str) -> ProcessedStats:
     """
     Process raw match data into comprehensive statistics.
@@ -308,10 +320,10 @@ def create_player_stats_item(session_id: str, stats: ProcessedStats) -> PlayerSt
         summoner_name=stats.summoner_name,
         region=stats.region,
         total_games=stats.total_games,
-        win_rate=stats.win_rate,
-        avg_kda=stats.avg_kda,
-        champion_stats=champion_stats_dict,
-        monthly_trends=monthly_trends_dict,
+        win_rate=Decimal(str(stats.win_rate)),
+        avg_kda=Decimal(str(stats.avg_kda)),
+        champion_stats=convert_floats_to_decimal(champion_stats_dict),
+        monthly_trends=convert_floats_to_decimal(monthly_trends_dict),
         created_at=current_time,
         ttl=ttl
     )
