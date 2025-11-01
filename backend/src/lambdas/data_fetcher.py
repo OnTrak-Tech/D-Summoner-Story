@@ -212,7 +212,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 json.dumps(raw_data, indent=2)
             )
             
-            # Update job as processing (not completed yet)
+            logger.info(f"Successfully fetched and stored data for {summoner.name}")
+            print(f"DATA FETCHER: Successfully completed for {summoner.name}")
+            
+            # Update job as processing and return response immediately
             dynamodb_client.update_item(
                 processing_jobs_table,
                 {"PK": job.PK},
@@ -229,25 +232,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 }
             )
             
-            logger.info(f"Successfully fetched and stored data for {summoner.name}")
-            print(f"DATA FETCHER: Successfully completed for {summoner.name}")
-            
-            # Create response to return immediately
-            response = format_lambda_response(200, {
-                "job_id": job_id,
-                "status": "processing",
-                "summoner_info": {
-                    "id": summoner.id,
-                    "name": summoner.name,
-                    "level": summoner.summoner_level,
-                    "region": request.region
-                },
-                "match_count": len(matches),
-                "s3_key": s3_key,
-                "message": f"Successfully fetched {len(matches)} matches, processing..."
-            })
-            
-            # Invoke data processor Lambda AFTER creating response
+            # Invoke data processor Lambda asynchronously
             try:
                 import boto3
                 lambda_client = boto3.client('lambda')
@@ -272,7 +257,20 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 logger.error(f"Failed to invoke data processor: {e}")
                 print(f"DATA FETCHER: Failed to invoke data processor: {e}")
             
-            return response
+            # Return response immediately
+            return format_lambda_response(200, {
+                "job_id": job_id,
+                "status": "processing",
+                "summoner_info": {
+                    "id": summoner.id,
+                    "name": summoner.name,
+                    "level": summoner.summoner_level,
+                    "region": request.region
+                },
+                "match_count": len(matches),
+                "s3_key": s3_key,
+                "message": f"Successfully fetched {len(matches)} matches, processing..."
+            })
             
         except SummonerNotFound:
             print("DATA FETCHER: Summoner not found")
