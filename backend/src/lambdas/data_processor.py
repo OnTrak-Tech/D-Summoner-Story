@@ -390,7 +390,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
             # Process matches into statistics using PUUID for participant matching
             logger.info(f"Processing {len(matches)} matches for summoner PUUID {summoner_puuid}")
+            print(f"DATA PROCESSOR: Processing {len(matches)} matches for summoner PUUID {summoner_puuid}")
             processed_stats = process_match_statistics(matches, summoner_puuid)
+            print(f"DATA PROCESSOR: Statistics processing completed successfully")
             
             # Update progress
             dynamodb_client.update_item(

@@ -212,14 +212,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 json.dumps(raw_data, indent=2)
             )
             
-            # Update job as completed
+            # Update job as processing (not completed yet)
             dynamodb_client.update_item(
                 processing_jobs_table,
                 {"PK": job.PK},
                 "SET #status = :status, #progress = :progress, #updated_at = :updated_at",
                 {
-                    ":status": "completed",
-                    ":progress": 100,
+                    ":status": "processing",
+                    ":progress": 50,
                     ":updated_at": get_current_timestamp()
                 },
                 {
@@ -229,7 +229,25 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 }
             )
             
-            # Invoke data processor Lambda to start processing
+            logger.info(f"Successfully fetched and stored data for {summoner.name}")
+            print(f"DATA FETCHER: Successfully completed for {summoner.name}")
+            
+            # Create response to return immediately
+            response = format_lambda_response(200, {
+                "job_id": job_id,
+                "status": "processing",
+                "summoner_info": {
+                    "id": summoner.id,
+                    "name": summoner.name,
+                    "level": summoner.summoner_level,
+                    "region": request.region
+                },
+                "match_count": len(matches),
+                "s3_key": s3_key,
+                "message": f"Successfully fetched {len(matches)} matches, processing..."
+            })
+            
+            # Invoke data processor Lambda AFTER creating response
             try:
                 import boto3
                 lambda_client = boto3.client('lambda')
@@ -254,22 +272,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 logger.error(f"Failed to invoke data processor: {e}")
                 print(f"DATA FETCHER: Failed to invoke data processor: {e}")
             
-            logger.info(f"Successfully fetched and stored data for {summoner.name}")
-            print(f"DATA FETCHER: Successfully completed for {summoner.name}")
-            
-            return format_lambda_response(200, {
-                "job_id": job_id,
-                "status": "completed",
-                "summoner_info": {
-                    "id": summoner.id,
-                    "name": summoner.name,
-                    "level": summoner.summoner_level,
-                    "region": request.region
-                },
-                "match_count": len(matches),
-                "s3_key": s3_key,
-                "message": f"Successfully fetched {len(matches)} matches"
-            })
+            return response
             
         except SummonerNotFound:
             print("DATA FETCHER: Summoner not found")

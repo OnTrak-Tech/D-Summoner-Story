@@ -60,8 +60,13 @@ def process_match_statistics(matches: List[RiotMatch], summoner_puuid: str) -> P
     Process raw match data into comprehensive statistics.
     This is the core analytics function that transforms Riot API data into insights.
     """
+    print(f"UTILS: process_match_statistics called with {len(matches)} matches for PUUID {summoner_puuid}")
+    
     if not matches:
+        print("UTILS: No matches provided, raising ValueError")
         raise ValueError("No matches provided for processing")
+    
+    print(f"UTILS: Starting statistics processing for {len(matches)} matches")
     
     # Initialize counters
     total_games = len(matches)
@@ -79,21 +84,30 @@ def process_match_statistics(matches: List[RiotMatch], summoner_puuid: str) -> P
     monthly_stats: Dict[str, Dict[str, Any]] = {}
     
     # Process each match
-    for match in matches:
+    print(f"UTILS: Processing {len(matches)} matches...")
+    for i, match in enumerate(matches):
+        print(f"UTILS: Processing match {i+1}/{len(matches)}: {match.match_id}")
+        
         # Find the correct summoner's participant data by PUUID
         summoner_participant = None
+        print(f"UTILS: Looking for participant with PUUID {summoner_puuid} in {len(match.participants)} participants")
+        
         for participant in match.participants:
             # Match by summoner_id as proxy for PUUID (in real implementation, use PUUID)
             if participant.summoner_id == summoner_puuid:
                 summoner_participant = participant
                 if not summoner_name:  # Set name from first match
                     summoner_name = f"Player_{participant.summoner_id}"
+                print(f"UTILS: Found matching participant for PUUID {summoner_puuid}")
                 break
         
         if not summoner_participant:
             # If we can't find the summoner in this match, skip it
+            print(f"UTILS: WARNING - Summoner {summoner_puuid} not found in match {match.match_id}")
             logger.warning(f"Summoner {summoner_puuid} not found in match {match.match_id}")
             continue
+        
+        print(f"UTILS: Processing stats for match {match.match_id}")
         
         # Update overall statistics
         if summoner_participant.win:
