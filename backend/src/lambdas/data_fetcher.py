@@ -42,6 +42,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     print(f"DATA FETCHER: Handler started with event: {event}")
     
+    # Check if this is background processing
+    if event.get("background_processing"):
+        return handle_background_processing(event, context)
+    
     try:
         # Parse request body
         body = event.get("body", "{}")
@@ -133,96 +137,18 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 {"#progress": "progress"}
             )
             
-            # Step 2: Get match history (reduced for dev API key limits)
-            logger.info(f"Fetching match history for {summoner.name}")
-            print(f"DATA FETCHER: Fetching match history for {summoner.name}")
+            # Return response immediately after getting summoner info
+            logger.info(f"Successfully found summoner {summoner.name}, starting background processing")
+            print(f"DATA FETCHER: Successfully found summoner {summoner.name}, starting background processing")
             
-            # Add detailed logging for match history
-            import time
-            now = int(time.time())
-            past_12_months = now - (12 * 30 * 24 * 60 * 60)  # 12 months back
-            logger.info(f"Fetching matches for {summoner.name} from {past_12_months} to {now} in {request.region}")
-            print(f"DATA FETCHER: Fetching matches for {summoner.name} from {past_12_months} to {now} in {request.region}")
-            
-            matches = riot_client.get_full_match_history(summoner, request.region, months_back=12)
-            print(f"DATA FETCHER: Retrieved {len(matches)} matches")
-            
-            if not matches:
-                print("DATA FETCHER: No matches found - updating job status")
-                # Update job as completed with insufficient data
-                dynamodb_client.update_item(
-                    processing_jobs_table,
-                    {"PK": job.PK},
-                    "SET #status = :status, #progress = :progress, #error_message = :error",
-                    {
-                        ":status": "completed",
-                        ":progress": 100,
-                        ":error": "No match history found for the past 12 months"
-                    },
-                    {
-                        "#status": "status",
-                        "#progress": "progress",
-                        "#error_message": "error_message"
-                    }
-                )
-                
-                return format_lambda_response(200, {
-                    "job_id": job_id,
-                    "status": "completed",
-                    "message": "No match history found",
-                    "summoner_info": {
-                        "name": summoner.name,
-                        "level": summoner.summoner_level,
-                        "region": request.region
-                    }
-                })
-            
-            # Update progress
-            dynamodb_client.update_item(
-                processing_jobs_table,
-                {"PK": job.PK},
-                "SET #progress = :progress",
-                {":progress": 70},
-                {"#progress": "progress"}
-            )
-            
-            # Step 3: Store raw data in S3
-            logger.info(f"Storing {len(matches)} matches in S3")
-            print(f"DATA FETCHER: Storing {len(matches)} matches in S3")
-            
-            # Prepare data for storage
-            raw_data = {
-                "summoner": asdict(summoner),
-                "matches": [asdict(match) for match in matches],
-                "metadata": {
-                    "fetch_timestamp": get_current_timestamp(),
-                    "region": request.region,
-                    "total_matches": len(matches),
-                    "session_id": request.session_id
-                }
-            }
-            
-            # Generate S3 key
-            s3_key = generate_s3_key(summoner.puuid, "raw-matches")
-            
-            # Store in S3
-            s3_client.put_object(
-                raw_data_bucket,
-                s3_key,
-                json.dumps(raw_data, indent=2)
-            )
-            
-            logger.info(f"Successfully fetched and stored data for {summoner.name}")
-            print(f"DATA FETCHER: Successfully completed for {summoner.name}")
-            
-            # Update job as processing and return response immediately
+            # Update job status to processing
             dynamodb_client.update_item(
                 processing_jobs_table,
                 {"PK": job.PK},
                 "SET #status = :status, #progress = :progress, #updated_at = :updated_at",
                 {
                     ":status": "processing",
-                    ":progress": 50,
+                    ":progress": 30,
                     ":updated_at": get_current_timestamp()
                 },
                 {
@@ -232,30 +158,32 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 }
             )
             
-            # Invoke data processor Lambda asynchronously
+            # Invoke self asynchronously to do the heavy work
             try:
                 import boto3
                 lambda_client = boto3.client('lambda')
-                processor_function_name = os.environ.get('DATA_PROCESSOR_FUNCTION_NAME')
+                current_function_name = context.function_name
                 
-                if processor_function_name:
-                    lambda_client.invoke(
-                        FunctionName=processor_function_name,
-                        InvocationType='Event',  # Async
-                        Payload=json.dumps({
-                            'session_id': request.session_id,
-                            'job_id': job_id,
-                            'summoner_puuid': summoner.puuid
-                        })
-                    )
-                    logger.info(f"Invoked data processor for job {job_id}")
-                    print(f"DATA FETCHER: Invoked data processor for job {job_id}")
-                else:
-                    logger.warning("DATA_PROCESSOR_FUNCTION_NAME not set, skipping processor invocation")
-                    print("DATA FETCHER: DATA_PROCESSOR_FUNCTION_NAME not set")
+                # Create payload for background processing
+                background_payload = {
+                    "background_processing": True,
+                    "session_id": request.session_id,
+                    "job_id": job_id,
+                    "summoner_puuid": summoner.puuid,
+                    "summoner_name": summoner.name,
+                    "region": request.region
+                }
+                
+                lambda_client.invoke(
+                    FunctionName=current_function_name,
+                    InvocationType='Event',  # Async
+                    Payload=json.dumps(background_payload)
+                )
+                logger.info(f"Invoked background processing for job {job_id}")
+                print(f"DATA FETCHER: Invoked background processing for job {job_id}")
             except Exception as e:
-                logger.error(f"Failed to invoke data processor: {e}")
-                print(f"DATA FETCHER: Failed to invoke data processor: {e}")
+                logger.error(f"Failed to invoke background processing: {e}")
+                print(f"DATA FETCHER: Failed to invoke background processing: {e}")
             
             # Return response immediately
             return format_lambda_response(200, {
@@ -267,9 +195,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     "level": summoner.summoner_level,
                     "region": request.region
                 },
-                "match_count": len(matches),
-                "s3_key": s3_key,
-                "message": f"Successfully fetched {len(matches)} matches, processing..."
+                "message": "Summoner found, fetching match history in background..."
             })
             
         except SummonerNotFound:
@@ -346,3 +272,174 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             "message": "An unexpected error occurred",
             "details": str(e)
         })
+
+
+def handle_background_processing(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+    """
+    Handle background processing of match history fetching.
+    """
+    print(f"DATA FETCHER: Background processing started: {event}")
+    
+    try:
+        # Extract parameters
+        session_id = event["session_id"]
+        job_id = event["job_id"]
+        summoner_puuid = event["summoner_puuid"]
+        summoner_name = event["summoner_name"]
+        region = event["region"]
+        
+        # Initialize clients
+        riot_client = get_riot_client()
+        s3_client = get_s3_client()
+        dynamodb_client = get_dynamodb_client()
+        
+        raw_data_bucket = get_bucket_name("RAW_DATA")
+        processing_jobs_table = get_table_name("PROCESSING_JOBS")
+        
+        # Create minimal summoner object for match fetching
+        from shared.models import Summoner
+        summoner = Summoner(
+            id="",  # Not needed for match fetching
+            account_id="",  # Not needed for match fetching
+            puuid=summoner_puuid,
+            name=summoner_name,
+            profile_icon_id=0,
+            revision_date=0,
+            summoner_level=0
+        )
+        
+        # Update progress
+        dynamodb_client.update_item(
+            processing_jobs_table,
+            {"PK": f"JOB#{job_id}"},
+            "SET #progress = :progress",
+            {":progress": 50},
+            {"#progress": "progress"}
+        )
+        
+        # Fetch match history
+        logger.info(f"Background: Fetching match history for {summoner_name}")
+        print(f"DATA FETCHER: Background: Fetching match history for {summoner_name}")
+        
+        matches = riot_client.get_full_match_history(summoner, region, months_back=12)
+        print(f"DATA FETCHER: Background: Retrieved {len(matches)} matches")
+        
+        if not matches:
+            print("DATA FETCHER: Background: No matches found")
+            dynamodb_client.update_item(
+                processing_jobs_table,
+                {"PK": f"JOB#{job_id}"},
+                "SET #status = :status, #progress = :progress, #error_message = :error",
+                {
+                    ":status": "completed",
+                    ":progress": 100,
+                    ":error": "No match history found for the past 12 months"
+                },
+                {
+                    "#status": "status",
+                    "#progress": "progress",
+                    "#error_message": "error_message"
+                }
+            )
+            return {"statusCode": 200, "body": "No matches found"}
+        
+        # Update progress
+        dynamodb_client.update_item(
+            processing_jobs_table,
+            {"PK": f"JOB#{job_id}"},
+            "SET #progress = :progress",
+            {":progress": 70},
+            {"#progress": "progress"}
+        )
+        
+        # Store data in S3
+        logger.info(f"Background: Storing {len(matches)} matches in S3")
+        print(f"DATA FETCHER: Background: Storing {len(matches)} matches in S3")
+        
+        raw_data = {
+            "summoner": asdict(summoner),
+            "matches": [asdict(match) for match in matches],
+            "metadata": {
+                "fetch_timestamp": get_current_timestamp(),
+                "region": region,
+                "total_matches": len(matches),
+                "session_id": session_id
+            }
+        }
+        
+        s3_key = generate_s3_key(summoner_puuid, "raw-matches")
+        s3_client.put_object(
+            raw_data_bucket,
+            s3_key,
+            json.dumps(raw_data, indent=2)
+        )
+        
+        # Update job status
+        dynamodb_client.update_item(
+            processing_jobs_table,
+            {"PK": f"JOB#{job_id}"},
+            "SET #status = :status, #progress = :progress, #updated_at = :updated_at",
+            {
+                ":status": "processing",
+                ":progress": 80,
+                ":updated_at": get_current_timestamp()
+            },
+            {
+                "#status": "status",
+                "#progress": "progress",
+                "#updated_at": "updated_at"
+            }
+        )
+        
+        # Invoke data processor
+        try:
+            import boto3
+            lambda_client = boto3.client('lambda')
+            processor_function_name = os.environ.get('DATA_PROCESSOR_FUNCTION_NAME')
+            
+            if processor_function_name:
+                lambda_client.invoke(
+                    FunctionName=processor_function_name,
+                    InvocationType='Event',
+                    Payload=json.dumps({
+                        'session_id': session_id,
+                        'job_id': job_id,
+                        'summoner_puuid': summoner_puuid
+                    })
+                )
+                logger.info(f"Background: Invoked data processor for job {job_id}")
+                print(f"DATA FETCHER: Background: Invoked data processor for job {job_id}")
+        except Exception as e:
+            logger.error(f"Background: Failed to invoke data processor: {e}")
+            print(f"DATA FETCHER: Background: Failed to invoke data processor: {e}")
+        
+        print(f"DATA FETCHER: Background processing completed for job {job_id}")
+        return {"statusCode": 200, "body": "Background processing completed"}
+        
+    except Exception as e:
+        print(f"DATA FETCHER: Background processing error: {e}")
+        logger.error(f"Background processing error: {e}", exc_info=True)
+        
+        # Update job with error
+        try:
+            job_id = event.get("job_id")
+            if job_id:
+                dynamodb_client = get_dynamodb_client()
+                processing_jobs_table = get_table_name("PROCESSING_JOBS")
+                dynamodb_client.update_item(
+                    processing_jobs_table,
+                    {"PK": f"JOB#{job_id}"},
+                    "SET #status = :status, #error_message = :error",
+                    {
+                        ":status": "failed",
+                        ":error": f"Background processing error: {str(e)}"
+                    },
+                    {
+                        "#status": "status",
+                        "#error_message": "error_message"
+                    }
+                )
+        except:
+            pass
+        
+        return {"statusCode": 500, "body": f"Background processing failed: {e}"}
