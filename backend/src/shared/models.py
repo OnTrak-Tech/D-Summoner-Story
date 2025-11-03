@@ -199,7 +199,7 @@ class RecapResponse(BaseModel):
     region: str
     narrative: str
     statistics: Dict[str, Any]
-    visualizations: List[ChartConfig]
+    visualizations: List[Dict[str, Any]]
     share_url: Optional[str] = None
 
 
