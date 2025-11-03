@@ -30,9 +30,9 @@ const StatCard: React.FC<StatCardProps> = ({
   color = 'blue' 
 }) => {
   const colorClasses = {
-    blue: 'bg-blue-50 border-blue-200 text-blue-800',
-    green: 'bg-green-50 border-green-200 text-green-800',
-    purple: 'bg-purple-50 border-purple-200 text-purple-800',
+    blue: 'bg-orange-50 border-orange-200 text-orange-800',
+    green: 'bg-amber-50 border-amber-200 text-amber-800',
+    purple: 'bg-orange-50 border-orange-200 text-orange-800',
     yellow: 'bg-yellow-50 border-yellow-200 text-yellow-800',
     red: 'bg-red-50 border-red-200 text-red-800',
   };
@@ -92,12 +92,12 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
   return (
     <div className="w-full max-w-4xl mx-auto">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg p-6">
+      <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-t-lg p-6">
         <div className="text-center">
           <h1 className="text-3xl font-bold mb-2">
             🎮 {recapData.summoner_name}'s Year in Review
           </h1>
-          <p className="text-blue-100">
+          <p className="text-orange-100">
             {recapData.region.toUpperCase()} • {new Date().getFullYear()}
           </p>
         </div>
@@ -118,7 +118,7 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
               className={`
                 flex-1 py-3 px-4 text-center font-medium transition-colors
                 ${activeTab === key
-                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                  ? 'text-orange-600 border-b-2 border-orange-600 bg-orange-50'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                 }
               `}
@@ -135,7 +135,7 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
         {activeTab === 'overview' && (
           <div className="p-6 space-y-6">
             {/* AI Narrative */}
-            <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6 border border-purple-200">
+            <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg p-6 border border-orange-200">
               <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
                 <span className="mr-2">🤖</span>
                 Your Year in Review
@@ -400,7 +400,7 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
               onClick={() => setShowShareModal(true)}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center"
+              className="px-6 py-3 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 transition-colors flex items-center justify-center"
             >
               <span className="mr-2">📤</span>
               Share My Year in Review

@@ -289,35 +289,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         insights = json.loads(insights_data)
         
-        # For this example, we'll use the statistics from the insights
-        # In a real implementation, you'd load from DynamoDB
+        # Use real statistics from insights
         statistics = insights.get("statistics_summary", {})
         
-        # Add mock detailed statistics for chart generation
-        detailed_stats = {
-            "total_wins": int(statistics.get("total_games", 100) * statistics.get("win_rate", 50) / 100),
-            "total_losses": statistics.get("total_games", 100) - int(statistics.get("total_games", 100) * statistics.get("win_rate", 50) / 100),
-            "avg_kills": 8.5,
-            "avg_deaths": 6.2,
-            "avg_assists": 12.3,
-            "monthly_trends": [
-                {"month": "January", "year": 2024, "win_rate": 45, "avg_kda": 1.8},
-                {"month": "February", "year": 2024, "win_rate": 52, "avg_kda": 2.1},
-                {"month": "March", "year": 2024, "win_rate": 58, "avg_kda": 2.4},
-                {"month": "April", "year": 2024, "win_rate": 61, "avg_kda": 2.7},
-                {"month": "May", "year": 2024, "win_rate": 63, "avg_kda": 3.1}
-            ],
-            "champion_stats": [
-                {"champion_name": "Jinx", "games_played": 45, "win_rate": 67},
-                {"champion_name": "Caitlyn", "games_played": 32, "win_rate": 59},
-                {"champion_name": "Ezreal", "games_played": 28, "win_rate": 61},
-                {"champion_name": "Kai'Sa", "games_played": 22, "win_rate": 55},
-                {"champion_name": "Vayne", "games_played": 18, "win_rate": 72}
-            ]
-        }
-        
-        # Merge with existing statistics
-        statistics.update(detailed_stats)
+        # Calculate total wins and losses from real data
+        total_games = statistics.get("total_games", 0)
+        win_rate = statistics.get("win_rate", 0)
+        statistics["total_wins"] = int(total_games * win_rate / 100)
+        statistics["total_losses"] = total_games - statistics["total_wins"]
         
         if is_share_request:
             # Handle sharing functionality
