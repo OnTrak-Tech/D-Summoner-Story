@@ -287,9 +287,11 @@ def create_chart_configurations(statistics: Dict[str, Any]) -> List[ChartConfig]
 
 def answer_player_question(question: str, insights: Dict, statistics: Dict) -> str:
     """Answer player questions using AI based on their data"""
-    from shared.aws_clients import get_bedrock_client
-    
-    prompt = f"""You are an AI coach for League of Legends. Answer this player's question based on their performance:
+    print(f"Answering question: {question}")
+    try:
+        from shared.aws_clients import get_bedrock_client
+        
+        prompt = f"""You are an AI coach for League of Legends. Answer this player's question based on their performance:
 
 QUESTION: {question}
 
@@ -301,11 +303,15 @@ DATA:
 - Recommendations: {insights.get('recommendations', [])[:2]}
 
 Answer in 2-3 sentences. Be helpful and specific."""
-    
-    try:
+        
+        print("Getting Bedrock client...")
         bedrock_client = get_bedrock_client()
-        return bedrock_client.invoke_claude(prompt, max_tokens=150)
-    except:
+        print("Invoking Claude...")
+        answer = bedrock_client.invoke_claude(prompt, max_tokens=150)
+        print(f"Claude response: {answer}")
+        return answer
+    except Exception as e:
+        print(f"Error in answer_player_question: {str(e)}")
         return "I'm having trouble right now. Try asking about your win rate, KDA, or improvement areas!"
 
 def generate_share_url(session_id: str) -> str:
@@ -325,6 +331,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     4. Aggregate all data for frontend consumption
     5. Handle sharing functionality
     """
+    print(f"Handler started with event: {json.dumps(event)}")
+    logger.info(f"Handler started with event: {json.dumps(event)}")
+    
     try:
         # Extract session ID from path parameters
         session_id = None
@@ -343,6 +352,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         path = event.get('path', '')
         is_share_request = http_method == 'POST' and 'share' in path
         is_qa_request = http_method == 'POST' and 'ask' in path
+        
+        print(f"Request details: method={http_method}, path={path}, is_qa={is_qa_request}")
+        logger.info(f"Request details: method={http_method}, path={path}, is_qa={is_qa_request}")
         
         # Initialize AWS clients
         dynamodb_client = get_dynamodb_client()
@@ -377,14 +389,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         statistics["total_losses"] = total_games - statistics["total_wins"]
         
         if is_qa_request:
+            print(f"Processing Q&A request for session {session_id}")
+            logger.info(f"Processing Q&A request for session {session_id}")
             # Handle AI Q&A request
             try:
                 body = json.loads(event.get('body', '{}'))
                 question = body.get('question', '')
+                print(f"Question received: {question}")
                 if not question:
                     return format_lambda_response(400, {"error": "Question required"})
                 
+                print("Calling answer_player_question...")
                 answer = answer_player_question(question, insights, statistics)
+                print(f"Answer generated: {answer}")
                 return format_lambda_response(200, {
                     "question": question,
                     "answer": answer,
@@ -397,7 +414,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     ]
                 })
             except Exception as e:
-                return format_lambda_response(500, {"error": "Failed to answer question"})
+                print(f"Q&A error: {str(e)}")
+                logger.error(f"Q&A error: {str(e)}", exc_info=True)
+                return format_lambda_response(500, {"error": f"Failed to answer question: {str(e)}"})
         
         if is_share_request:
             # Handle sharing functionality
