@@ -100,7 +100,8 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
     setCurrentQuestion('');
     
     try {
-      const response = await fetch(`/api/recap/${recapData.session_id}/ask`, {
+      const baseURL = import.meta.env?.VITE_API_ENDPOINT || 'https://your-api-gateway-url.execute-api.us-east-1.amazonaws.com';
+      const response = await fetch(`${baseURL}/api/v1/recap/${recapData.session_id}/ask`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({question})
