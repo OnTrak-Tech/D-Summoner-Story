@@ -285,9 +285,31 @@ def create_chart_configurations(statistics: Dict[str, Any]) -> List[ChartConfig]
     return charts
 
 
+def answer_player_question(question: str, insights: Dict, statistics: Dict) -> str:
+    """Answer player questions using AI based on their data"""
+    from shared.aws_clients import get_bedrock_client
+    
+    prompt = f"""You are an AI coach for League of Legends. Answer this player's question based on their performance:
+
+QUESTION: {question}
+
+DATA:
+- Games: {statistics.get('total_games', 0)}
+- Win Rate: {statistics.get('win_rate', 0)}%
+- KDA: {statistics.get('avg_kda', 0)}
+- Highlights: {insights.get('highlights', [])[:2]}
+- Recommendations: {insights.get('recommendations', [])[:2]}
+
+Answer in 2-3 sentences. Be helpful and specific."""
+    
+    try:
+        bedrock_client = get_bedrock_client()
+        return bedrock_client.invoke_claude(prompt, max_tokens=150)
+    except:
+        return "I'm having trouble right now. Try asking about your win rate, KDA, or improvement areas!"
+
 def generate_share_url(session_id: str) -> str:
     """Generate shareable URL for the recap"""
-    # In a real implementation, this would create a public sharing link
     base_url = os.environ.get('WEBSITE_URL', 'https://your-domain.com')
     return f"{base_url}/share/{session_id}"
 
@@ -316,9 +338,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 "message": "Session ID is required in path parameters"
             })
         
-        # Check if this is a sharing request
+        # Check request type
         http_method = event.get('httpMethod', 'GET')
-        is_share_request = http_method == 'POST' and 'share' in event.get('path', '')
+        path = event.get('path', '')
+        is_share_request = http_method == 'POST' and 'share' in path
+        is_qa_request = http_method == 'POST' and 'ask' in path
         
         # Initialize AWS clients
         dynamodb_client = get_dynamodb_client()
@@ -352,11 +376,33 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         statistics["total_wins"] = int(total_games * win_rate / 100)
         statistics["total_losses"] = total_games - statistics["total_wins"]
         
+        if is_qa_request:
+            # Handle AI Q&A request
+            try:
+                body = json.loads(event.get('body', '{}'))
+                question = body.get('question', '')
+                if not question:
+                    return format_lambda_response(400, {"error": "Question required"})
+                
+                answer = answer_player_question(question, insights, statistics)
+                return format_lambda_response(200, {
+                    "question": question,
+                    "answer": answer,
+                    "suggested_questions": [
+                        "How can I improve my win rate?",
+                        "What are my biggest strengths?",
+                        "Which champions should I focus on?",
+                        "Am I getting better over time?",
+                        "What should I work on next season?"
+                    ]
+                })
+            except Exception as e:
+                return format_lambda_response(500, {"error": "Failed to answer question"})
+        
         if is_share_request:
             # Handle sharing functionality
             share_url = generate_share_url(session_id)
             
-            # Store sharing metadata (in a real implementation)
             share_data = {
                 "session_id": session_id,
                 "share_url": share_url,

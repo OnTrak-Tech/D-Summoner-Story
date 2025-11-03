@@ -358,7 +358,8 @@ module "lambda_recap_server" {
   }
   policy_arns = [
     aws_iam_policy.lambda_dynamodb.arn,
-    aws_iam_policy.lambda_s3.arn
+    aws_iam_policy.lambda_s3.arn,
+    aws_iam_policy.lambda_bedrock.arn
   ]
 }
 
@@ -387,6 +388,9 @@ module "http_api" {
       target_lambda_arn = module.lambda_recap_server.lambda_arn
     }
     "POST /api/v1/share/{sessionId}" = {
+      target_lambda_arn = module.lambda_recap_server.lambda_arn
+    }
+    "POST /api/v1/recap/{sessionId}/ask" = {
       target_lambda_arn = module.lambda_recap_server.lambda_arn
     }
   }

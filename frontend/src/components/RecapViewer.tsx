@@ -62,8 +62,11 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
   onShare,
   onStartNew,
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'charts' | 'achievements'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'charts' | 'achievements' | 'ask-ai'>('overview');
   const [showShareModal, setShowShareModal] = useState(false);
+  const [messages, setMessages] = useState<Array<{type: 'question' | 'answer', text: string}>>([]);
+  const [currentQuestion, setCurrentQuestion] = useState('');
+  const [isAsking, setIsAsking] = useState(false);
   
   const { statistics, narrative, highlights, achievements, fun_facts, recommendations } = recapData;
 
@@ -88,6 +91,35 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
     if (kda >= 1.0) return 'yellow';
     return 'red';
   };
+
+  const askAI = async (question: string) => {
+    if (!question.trim() || isAsking) return;
+    
+    setIsAsking(true);
+    setMessages(prev => [...prev, {type: 'question', text: question}]);
+    setCurrentQuestion('');
+    
+    try {
+      const response = await fetch(`/api/recap/${recapData.session_id}/ask`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({question})
+      });
+      const data = await response.json();
+      setMessages(prev => [...prev, {type: 'answer', text: data.answer}]);
+    } catch {
+      setMessages(prev => [...prev, {type: 'answer', text: 'Sorry, I had trouble answering that. Please try again!'}]);
+    }
+    setIsAsking(false);
+  };
+
+  const suggestedQuestions = [
+    "How can I improve my win rate?",
+    "What are my biggest strengths?", 
+    "Which champions should I focus on?",
+    "Am I getting better over time?",
+    "What should I work on next season?"
+  ];
 
   return (
     <div className="w-full max-w-5xl mx-auto">
@@ -114,6 +146,7 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
             { key: 'stats', label: 'Statistics', icon: '📈' },
             { key: 'charts', label: 'Charts', icon: '📉' },
             { key: 'achievements', label: 'Achievements', icon: '🏆' },
+            { key: 'ask-ai', label: 'Ask AI', icon: '🤖' },
           ].map(({ key, label, icon }) => (
             <button
               key={key}
@@ -343,6 +376,80 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
           </div>
         )}
 
+        {/* Ask AI Tab */}
+        {activeTab === 'ask-ai' && (
+          <div className="p-6 space-y-6">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">🤖 Ask Your AI Coach</h2>
+              <p className="text-slate-600">Get personalized advice based on your performance data</p>
+            </div>
+            
+            {/* Chat Messages */}
+            <div className="bg-slate-50 rounded-xl p-4 min-h-[300px] max-h-[400px] overflow-y-auto space-y-3">
+              {messages.length === 0 && (
+                <div className="text-center text-slate-500 py-8">
+                  <p>Ask me anything about your League performance!</p>
+                </div>
+              )}
+              {messages.map((msg, i) => (
+                <div key={i} className={`flex ${msg.type === 'question' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[80%] p-3 rounded-lg ${
+                    msg.type === 'question' 
+                      ? 'bg-slate-900 text-white' 
+                      : 'bg-white border border-slate-200 text-slate-800'
+                  }`}>
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+              {isAsking && (
+                <div className="flex justify-start">
+                  <div className="bg-white border border-slate-200 p-3 rounded-lg text-slate-600">
+                    Thinking...
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Input */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={currentQuestion}
+                onChange={(e) => setCurrentQuestion(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && askAI(currentQuestion)}
+                placeholder="Ask about your performance..."
+                className="flex-1 p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+                disabled={isAsking}
+              />
+              <button
+                onClick={() => askAI(currentQuestion)}
+                disabled={isAsking || !currentQuestion.trim()}
+                className="px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Ask
+              </button>
+            </div>
+            
+            {/* Suggested Questions */}
+            <div>
+              <p className="text-sm text-slate-600 mb-2">Suggested questions:</p>
+              <div className="flex flex-wrap gap-2">
+                {suggestedQuestions.map((q, i) => (
+                  <button
+                    key={i}
+                    onClick={() => askAI(q)}
+                    disabled={isAsking}
+                    className="px-3 py-1 text-sm bg-white border border-slate-300 rounded-full hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Achievements Tab */}
         {activeTab === 'achievements' && (
           <div className="p-6 space-y-6">
