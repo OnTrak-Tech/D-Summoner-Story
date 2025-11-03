@@ -193,10 +193,18 @@ resource "aws_iam_policy" "lambda_bedrock" {
           "bedrock:InvokeModelWithResponseStream"
         ]
         Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "aws-marketplace:ViewSubscriptions"
+        ]
+        Resource = "*"
       }
     ]
   })
 }
+
 
 # Lambda invoke policy
 resource "aws_iam_policy" "lambda_invoke" {
