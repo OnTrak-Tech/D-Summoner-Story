@@ -14,7 +14,7 @@ import logging
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from shared.models import FetchRequest
+from shared.models import FetchRequest, Summoner
 from shared.riot_client import get_riot_client, RiotAPIError, SummonerNotFound
 from shared.aws_clients import get_s3_client, get_dynamodb_client, get_bucket_name, get_table_name
 from shared.utils import (
@@ -32,13 +32,6 @@ print("DATA FETCHER: Starting...")
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     Lambda handler for data fetching.
-    
-    Responsibilities:
-    1. Validate summoner name and region
-    2. Fetch summoner information from Riot API
-    3. Retrieve match history with rate limiting
-    4. Store raw match data in S3
-    5. Update processing job status in DynamoDB
     """
     print(f"DATA FETCHER: Handler started with event: {event}")
     
@@ -62,7 +55,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             print(f"DATA FETCHER: Valid request for {request.summoner_name} in {request.region}")
         except Exception as e:
             print(f"DATA FETCHER: Invalid request format: {e}")
-            logger.error(f"Invalid request format: {e}")
             return format_lambda_response(400, {
                 "error": "INVALID_REQUEST",
                 "message": "Invalid request format",
@@ -84,13 +76,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Initialize AWS clients
         print("DATA FETCHER: Initializing clients...")
         riot_client = get_riot_client()
-        s3_client = get_s3_client()
         dynamodb_client = get_dynamodb_client()
         
-        # Get bucket and table names
-        raw_data_bucket = get_bucket_name("RAW_DATA")
+        # Get table names
         processing_jobs_table = get_table_name("PROCESSING_JOBS")
-        print(f"DATA FETCHER: Using bucket: {raw_data_bucket}, table: {processing_jobs_table}")
+        print(f"DATA FETCHER: Using table: {processing_jobs_table}")
         
         # Create processing job
         job = create_processing_job(request.session_id, summoner_name, request.region)
@@ -99,7 +89,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         # Store initial job in DynamoDB
         dynamodb_client.put_item(processing_jobs_table, job.model_dump())
-
         
         logger.info(f"Starting data fetch for Riot ID {request.summoner_name} in {request.region}")
         print(f"DATA FETCHER: Starting data fetch for Riot ID {request.summoner_name} in {request.region}")
@@ -137,10 +126,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 {"#progress": "progress"}
             )
             
-            # Return response immediately after getting summoner info
-            logger.info(f"Successfully found summoner {summoner.name}, starting background processing")
-            print(f"DATA FETCHER: Successfully found summoner {summoner.name}, starting background processing")
-            
             # Update job status to processing
             dynamodb_client.update_item(
                 processing_jobs_table,
@@ -158,13 +143,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 }
             )
             
-            # Invoke self asynchronously to do the heavy work
+            # Invoke self asynchronously for background processing
             try:
                 import boto3
                 lambda_client = boto3.client('lambda')
                 current_function_name = context.function_name
                 
-                # Create payload for background processing
                 background_payload = {
                     "background_processing": True,
                     "session_id": request.session_id,
@@ -176,7 +160,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 
                 lambda_client.invoke(
                     FunctionName=current_function_name,
-                    InvocationType='Event',  # Async
+                    InvocationType='Event',
                     Payload=json.dumps(background_payload)
                 )
                 logger.info(f"Invoked background processing for job {job_id}")
@@ -200,7 +184,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
         except SummonerNotFound:
             print("DATA FETCHER: Summoner not found")
-            # Update job with error
             dynamodb_client.update_item(
                 processing_jobs_table,
                 {"PK": job.PK},
@@ -222,7 +205,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
         except RiotAPIError as e:
             print(f"DATA FETCHER: Riot API error: {e}")
-            # Update job with error
             dynamodb_client.update_item(
                 processing_jobs_table,
                 {"PK": job.PK},
@@ -247,25 +229,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     except Exception as e:
         print(f"DATA FETCHER: Unexpected error: {e}")
         logger.error(f"Unexpected error in data fetcher: {e}", exc_info=True)
-        
-        # Try to update job status if possible
-        try:
-            if 'job' in locals() and 'dynamodb_client' in locals() and 'processing_jobs_table' in locals():
-                dynamodb_client.update_item(
-                    processing_jobs_table,
-                    {"PK": job.PK},
-                    "SET #status = :status, #error_message = :error",
-                    {
-                        ":status": "failed",
-                        ":error": f"Internal error: {str(e)}"
-                    },
-                    {
-                        "#status": "status",
-                        "#error_message": "error_message"
-                    }
-                )
-        except:
-            pass  # Don't fail on cleanup
         
         return format_lambda_response(500, {
             "error": "INTERNAL_ERROR",
@@ -297,10 +260,9 @@ def handle_background_processing(event: Dict[str, Any], context: Any) -> Dict[st
         processing_jobs_table = get_table_name("PROCESSING_JOBS")
         
         # Create minimal summoner object for match fetching
-        from shared.models import Summoner
         summoner = Summoner(
-            id="",  # Not needed for match fetching
-            account_id="",  # Not needed for match fetching
+            id="",
+            account_id="",
             puuid=summoner_puuid,
             name=summoner_name,
             profile_icon_id=0,

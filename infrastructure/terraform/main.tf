@@ -212,6 +212,7 @@ resource "aws_iam_policy" "lambda_invoke" {
           "lambda:InvokeFunction"
         ]
         Resource = [
+          module.lambda_data_fetcher.lambda_arn,
           module.lambda_data_processor.lambda_arn,
           module.lambda_insight_generator.lambda_arn
         ]
