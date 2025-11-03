@@ -347,9 +347,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 "message": "Session ID is required in path parameters"
             })
         
-        # Check request type
-        http_method = event.get('httpMethod', 'GET')
-        path = event.get('path', '')
+        # Check request type (API Gateway v2 format)
+        http_method = event.get('requestContext', {}).get('http', {}).get('method', 'GET')
+        path = event.get('rawPath', '')
         is_share_request = http_method == 'POST' and 'share' in path
         is_qa_request = http_method == 'POST' and 'ask' in path
         
@@ -478,6 +478,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return format_lambda_response(200, response_data)
         
     except Exception as e:
+        print(f"Unexpected error in recap server: {e}")
         logger.error(f"Unexpected error in recap server: {e}", exc_info=True)
         
         return format_lambda_response(500, {
