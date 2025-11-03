@@ -197,7 +197,7 @@ resource "aws_iam_policy" "lambda_bedrock" {
       {
         Effect = "Allow"
         Action = [
-          "aws-marketplace:ViewSubscriptions"
+          "aws-marketplace:ViewSubscriptions",
           "aws-marketplace:Subscribe"
         ]
         Resource = "*"
