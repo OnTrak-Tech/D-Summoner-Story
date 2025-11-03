@@ -346,7 +346,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             region="na1",  # This should come from the actual data
             narrative=insights.get("narrative", ""),
             statistics=statistics,
-            visualizations=[chart.__dict__ for chart in visualizations],
+            visualizations=visualizations,
             share_url=generate_share_url(session_id)
         )
         
