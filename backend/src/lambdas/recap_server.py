@@ -275,6 +275,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         processed_insights_bucket = get_bucket_name("PROCESSED_INSIGHTS")
         
         logger.info(f"Serving recap for session {session_id}")
+        logger.info(f"Event: {json.dumps(event)}")
         
         # Load insights from S3
         insights_key = f"insights/{session_id}/narrative.json"
@@ -363,6 +364,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         })
         
         logger.info(f"Successfully served recap for session {session_id}")
+        logger.info(f"Response data keys: {list(response_data.keys())}")
         
         return format_lambda_response(200, response_data)
         
