@@ -96,8 +96,6 @@ def process_match_statistics(matches: List[RiotMatch], summoner_puuid: str) -> P
             # Match by summoner_id as proxy for PUUID (in real implementation, use PUUID)
             if participant.summoner_id == summoner_puuid:
                 summoner_participant = participant
-                if not summoner_name:  # Set name from first match
-                    summoner_name = f"Player_{participant.summoner_id}"
                 print(f"UTILS: Found matching participant for PUUID {summoner_puuid}")
                 break
         
@@ -242,7 +240,7 @@ def process_match_statistics(matches: List[RiotMatch], summoner_puuid: str) -> P
     
     processed_stats = ProcessedStats(
         summoner_id=summoner_puuid,
-        summoner_name=summoner_name,
+        summoner_name=summoner_name if summoner_name else "Unknown Player",
         region=region,
         total_games=total_games,
         total_wins=total_wins,

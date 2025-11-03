@@ -306,13 +306,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         )
         
         try:
-            # Get PUUID from payload (passed from data_fetcher)
-            print("DATA PROCESSOR: Extracting summoner PUUID from payload...")
+            # Get PUUID and summoner name from payload (passed from data_fetcher)
+            print("DATA PROCESSOR: Extracting summoner data from payload...")
             summoner_puuid = payload.get('summoner_puuid')
+            summoner_name = payload.get('summoner_name', job_item.get('summoner_name', 'Unknown'))
             if not summoner_puuid:
                 print("DATA PROCESSOR: ERROR - Missing summoner_puuid in payload")
                 raise Exception("Missing summoner_puuid in payload")
-            print(f"DATA PROCESSOR: Using summoner PUUID: {summoner_puuid}")
+            print(f"DATA PROCESSOR: Using summoner PUUID: {summoner_puuid}, Name: {summoner_name}")
             
             print("DATA PROCESSOR: Loading matches from S3...")
             matches = load_matches_from_s3(s3_client, raw_data_bucket, summoner_puuid)
@@ -324,8 +325,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 
                 default_stats = ProcessedStats(
                     summoner_id=summoner_puuid,
-                    summoner_name=job_item.get('summoner_name', 'Unknown'),
-                    region=job_item.get('region', 'na1'),
+                    summoner_name=summoner_name,
+                    region=payload.get('region', job_item.get('region', 'na1')),
                     total_games=0,
                     total_wins=0,
                     total_losses=0,
@@ -389,10 +390,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             )
             
             # Process matches into statistics using PUUID for participant matching
-            logger.info(f"Processing {len(matches)} matches for summoner PUUID {summoner_puuid}")
-            print(f"DATA PROCESSOR: Processing {len(matches)} matches for summoner PUUID {summoner_puuid}")
+            logger.info(f"Processing {len(matches)} matches for summoner {summoner_name} (PUUID: {summoner_puuid})")
+            print(f"DATA PROCESSOR: Processing {len(matches)} matches for summoner {summoner_name} (PUUID: {summoner_puuid})")
             processed_stats = process_match_statistics(matches, summoner_puuid)
-            print(f"DATA PROCESSOR: Statistics processing completed successfully")
+            # Override summoner name with the actual name from data_fetcher
+            processed_stats.summoner_name = summoner_name
+            processed_stats.region = payload.get('region', job_item.get('region', 'na1'))
+            print(f"DATA PROCESSOR: Statistics processing completed successfully for {summoner_name}")
             
             # Update progress
             dynamodb_client.update_item(

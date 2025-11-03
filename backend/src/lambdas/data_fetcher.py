@@ -366,7 +366,9 @@ def handle_background_processing(event: Dict[str, Any], context: Any) -> Dict[st
                     Payload=json.dumps({
                         'session_id': session_id,
                         'job_id': job_id,
-                        'summoner_puuid': summoner_puuid
+                        'summoner_puuid': summoner_puuid,
+                        'summoner_name': summoner_name,
+                        'region': region
                     })
                 )
                 logger.info(f"Background: Invoked data processor for job {job_id}")

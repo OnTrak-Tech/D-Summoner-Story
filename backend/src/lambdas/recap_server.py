@@ -374,11 +374,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         chart_configs = create_chart_configurations(statistics)
         visualizations = [chart.__dict__ for chart in chart_configs]
         
+        # Get summoner name and region from insights
+        summoner_name = insights.get("statistics_summary", {}).get("summoner_name", "Unknown Summoner")
+        region = insights.get("statistics_summary", {}).get("region", "na1")
+        
+        # Clean up summoner name if needed
+        if summoner_name.startswith('Player_'):
+            summoner_name = summoner_name.replace('Player_', '').replace('%20', ' ')
+        
         # Prepare complete recap response
         recap_data = RecapResponse(
             session_id=session_id,
-            summoner_name=insights.get("statistics_summary", {}).get("summoner_name", "Unknown Summoner"),
-            region="na1",  # This should come from the actual data
+            summoner_name=summoner_name,
+            region=region,
             narrative=insights.get("narrative", ""),
             statistics=statistics,
             visualizations=visualizations,

@@ -266,10 +266,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Use the first (and should be only) result
         stats_data = scan_result[0]
         
+        # Get actual summoner name from DynamoDB data
+        actual_summoner_name = stats_data.get('summoner_name', 'Unknown')
+        if actual_summoner_name.startswith('Player_'):
+            # Clean up the encoded summoner name
+            actual_summoner_name = actual_summoner_name.replace('Player_', '').replace('%20', ' ')
+        
         # Create ProcessedStats object from DynamoDB data
         mock_stats = ProcessedStats(
             summoner_id=stats_data.get('PK', '').replace('PLAYER#', ''),
-            summoner_name=stats_data.get('summoner_name', 'Unknown'),
+            summoner_name=actual_summoner_name,
             region=stats_data.get('region', 'unknown'),
             total_games=int(stats_data.get('total_games', 0)),
             total_wins=int(stats_data.get('total_games', 0) * stats_data.get('win_rate', 0) / 100),
@@ -386,6 +392,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 "behavioral_patterns": behavioral_insights,
                 "generated_at": get_current_timestamp(),
                 "statistics_summary": {
+                    "summoner_name": mock_stats.summoner_name,
+                    "region": mock_stats.region,
                     "total_games": mock_stats.total_games,
                     "win_rate": mock_stats.win_rate,
                     "avg_kda": mock_stats.avg_kda,
