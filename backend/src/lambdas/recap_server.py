@@ -337,7 +337,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             })
         
         # Create chart configurations
-        visualizations = create_chart_configurations(statistics)
+        chart_configs = create_chart_configurations(statistics)
+        visualizations = [chart.__dict__ for chart in chart_configs]
         
         # Prepare complete recap response
         recap_data = RecapResponse(
