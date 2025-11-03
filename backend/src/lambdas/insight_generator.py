@@ -326,12 +326,28 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             # Generate achievements
             achievements = create_achievements_prompt(mock_stats)
             
-            # Create fun facts
+            # Create fun facts with new analytics
             fun_facts = [
                 f"You played {mock_stats.total_games} games this year - that's like watching {mock_stats.total_games * 30 // 60} hours of League!",
                 f"Your {mock_stats.avg_kda} KDA means you're definitely not feeding... most of the time 😉",
                 f"With a {mock_stats.win_rate}% win rate, you're climbing faster than a Katarina combo!"
             ]
+            
+            # Add highlight matches to fun facts
+            if hasattr(mock_stats, 'highlight_matches') and mock_stats.highlight_matches:
+                best_match = mock_stats.highlight_matches[0]
+                fun_facts.append(f"Your best game: {best_match['kills']}/{best_match['deaths']}/{best_match['assists']} on {best_match['champion']} - absolutely legendary!")
+            
+            # Add champion improvements
+            champion_improvements = []
+            if hasattr(mock_stats, 'champion_improvements') and mock_stats.champion_improvements:
+                for imp in mock_stats.champion_improvements:
+                    champion_improvements.append(f"Mastered {imp['champion']} with {imp['win_rate']}% win rate (+{imp['improvement']}% improvement)")
+            
+            # Add behavioral patterns
+            behavioral_insights = []
+            if hasattr(mock_stats, 'behavioral_patterns') and mock_stats.behavioral_patterns:
+                behavioral_insights = mock_stats.behavioral_patterns
             
             # Create recommendations
             recommendations = []
@@ -357,7 +373,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 recommendations=recommendations
             )
             
-            # Prepare response data
+            # Prepare response data with new analytics
             insight_data = {
                 "session_id": session_id,
                 "narrative": generated_insight.narrative,
@@ -365,6 +381,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 "achievements": generated_insight.achievements,
                 "fun_facts": generated_insight.fun_facts,
                 "recommendations": generated_insight.recommendations,
+                "highlight_matches": getattr(mock_stats, 'highlight_matches', []),
+                "champion_improvements": champion_improvements,
+                "behavioral_patterns": behavioral_insights,
                 "generated_at": get_current_timestamp(),
                 "statistics_summary": {
                     "total_games": mock_stats.total_games,

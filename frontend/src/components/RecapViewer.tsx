@@ -346,10 +346,60 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
         {/* Achievements Tab */}
         {activeTab === 'achievements' && (
           <div className="p-6 space-y-6">
+            {/* Highlight Matches */}
+            {(recapData as any).highlight_matches && (recapData as any).highlight_matches.length > 0 && (
+              <div>
+                <h3 className="text-xl font-bold text-slate-900 mb-4">✨ Epic Matches</h3>
+                <div className="grid gap-3">
+                  {(recapData as any).highlight_matches.map((match: any, index: number) => (
+                    <div key={index} className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-5 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-bold text-slate-900">{match.champion}</p>
+                          <p className="text-slate-600">{match.kills}/{match.deaths}/{match.assists} - {match.kda} KDA</p>
+                        </div>
+                        <div className={`px-3 py-1 rounded-full text-sm font-medium ${match.win ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          {match.win ? 'Victory' : 'Defeat'}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Champion Improvements */}
+            {(recapData as any).champion_improvements && (recapData as any).champion_improvements.length > 0 && (
+              <div>
+                <h3 className="text-xl font-bold text-slate-900 mb-4">📈 Biggest Improvements</h3>
+                <div className="grid gap-3">
+                  {(recapData as any).champion_improvements.map((improvement: string, index: number) => (
+                    <div key={index} className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5 shadow-sm">
+                      <p className="text-slate-800 font-medium">{improvement}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Behavioral Patterns */}
+            {(recapData as any).behavioral_patterns && (recapData as any).behavioral_patterns.length > 0 && (
+              <div>
+                <h3 className="text-xl font-bold text-slate-900 mb-4">🧠 Your Playstyle</h3>
+                <div className="grid gap-3">
+                  {(recapData as any).behavioral_patterns.map((pattern: string, index: number) => (
+                    <div key={index} className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-5 shadow-sm">
+                      <p className="text-slate-800 font-medium">{pattern}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             {/* Achievements */}
             {achievements && achievements.length > 0 && (
               <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-4">🏆 Achievements Unlocked</h3>
+                <h3 className="text-xl font-bold text-slate-900 mb-4">🏆 Achievements Unlocked</h3>
                 <div className="grid gap-3">
                   {achievements.map((achievement, index) => (
                     <div

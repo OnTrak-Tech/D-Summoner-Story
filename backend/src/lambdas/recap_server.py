@@ -385,13 +385,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             share_url=generate_share_url(session_id)
         )
         
-        # Add additional metadata
+        # Add additional metadata including new analytics
         response_data = recap_data.__dict__.copy()
         response_data.update({
             "highlights": insights.get("highlights", []),
             "achievements": insights.get("achievements", []),
             "fun_facts": insights.get("fun_facts", []),
             "recommendations": insights.get("recommendations", []),
+            "highlight_matches": insights.get("highlight_matches", []),
+            "champion_improvements": insights.get("champion_improvements", []),
+            "behavioral_patterns": insights.get("behavioral_patterns", []),
             "generated_at": insights.get("generated_at"),
             "served_at": get_current_timestamp()
         })

@@ -226,12 +226,21 @@ def process_match_statistics(matches: List[RiotMatch], summoner_puuid: str) -> P
     # Calculate consistency score (based on KDA variance)
     consistency_score = calculate_consistency_score(monthly_data_objects)
     
+    # Identify highlight matches
+    highlight_matches = identify_highlight_matches(matches, summoner_puuid)
+    
+    # Calculate champion improvements
+    champion_improvements = calculate_champion_improvements(champion_stats)
+    
+    # Identify behavioral patterns
+    behavioral_patterns = identify_behavioral_patterns(monthly_data_objects)
+    
     # Find top performers
     most_played = champion_stat_objects[0] if champion_stat_objects else None
     highest_winrate = max(champion_stat_objects, key=lambda x: x.win_rate) if champion_stat_objects else None
     best_kda = max(champion_stat_objects, key=lambda x: x.avg_kda) if champion_stat_objects else None
     
-    return ProcessedStats(
+    processed_stats = ProcessedStats(
         summoner_id=summoner_puuid,
         summoner_name=summoner_name,
         region=region,
@@ -251,6 +260,13 @@ def process_match_statistics(matches: List[RiotMatch], summoner_puuid: str) -> P
         improvement_trend=improvement_trend,
         consistency_score=consistency_score
     )
+    
+    # Add new analytics data
+    processed_stats.highlight_matches = highlight_matches
+    processed_stats.champion_improvements = champion_improvements
+    processed_stats.behavioral_patterns = behavioral_patterns
+    
+    return processed_stats
 
 
 def calculate_improvement_trend(monthly_data: List[MonthlyData]) -> float:
@@ -428,3 +444,33 @@ def get_current_timestamp() -> int:
 def get_current_iso_time() -> str:
     """Get current time in ISO format"""
     return datetime.now(timezone.utc).isoformat()
+
+def identify_highlight_matches(matches: List[RiotMatch], summoner_puuid: str):
+    scores = []
+    for m in matches:
+        p = next((x for x in m.participants if x.summoner_id == summoner_puuid), None)
+        if p:
+            kda = calculate_kda(p.kills, p.deaths, p.assists)
+            scores.append({'kda': kda, 'kills': p.kills, 'deaths': p.deaths, 'assists': p.assists, 'champion': p.champion_name, 'win': p.win})
+    scores.sort(key=lambda x: x['kda'], reverse=True)
+    return scores[:3]
+
+def calculate_champion_improvements(champion_stats):
+    imps = []
+    for cid, d in champion_stats.items():
+        if d['games'] >= 10:
+            wr = calculate_win_rate(d['wins'], d['games'])
+            if wr > 55:
+                imps.append({'champion': d['champion_name'], 'improvement': round(wr - 45, 1), 'win_rate': wr})
+    imps.sort(key=lambda x: x['improvement'], reverse=True)
+    return imps[:3]
+
+def identify_behavioral_patterns(monthly_data):
+    patterns = []
+    if len(monthly_data) >= 3:
+        avg = sum(m.avg_kda for m in monthly_data[-3:]) / 3
+        if avg > 2.5:
+            patterns.append("Consistently strong KDA performance")
+        if monthly_data[-1].avg_kda > monthly_data[0].avg_kda * 1.2:
+            patterns.append("Significant improvement from early to late season")
+    return patterns[:5]
