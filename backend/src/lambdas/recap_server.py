@@ -38,8 +38,9 @@ def create_chart_configurations(statistics: Dict[str, Any]) -> List[ChartConfig]
                     statistics.get("total_wins", 0),
                     statistics.get("total_losses", 0)
                 ],
-                "backgroundColor": ["#10B981", "#EF4444"],
-                "borderWidth": 0
+                "backgroundColor": ["#10b981", "#f43f5e"],
+                "borderWidth": 2,
+                "borderColor": "#ffffff"
             }]
         },
         options={
@@ -47,11 +48,14 @@ def create_chart_configurations(statistics: Dict[str, Any]) -> List[ChartConfig]
             "maintainAspectRatio": False,
             "plugins": {
                 "legend": {
-                    "position": "bottom"
+                    "position": "bottom",
+                    "labels": {"color": "#475569", "font": {"size": 12}}
                 },
                 "title": {
                     "display": True,
-                    "text": f"Win Rate: {statistics.get('win_rate', 0)}%"
+                    "text": f"Win Rate: {statistics.get('win_rate', 0)}%",
+                    "font": {"size": 16, "weight": "bold"},
+                    "color": "#0f172a"
                 }
             }
         }
@@ -73,17 +77,22 @@ def create_chart_configurations(statistics: Dict[str, Any]) -> List[ChartConfig]
                     {
                         "label": "Win Rate (%)",
                         "data": win_rates,
-                        "borderColor": "#3B82F6",
-                        "backgroundColor": "rgba(59, 130, 246, 0.1)",
+                        "borderColor": "#0f172a",
+                        "backgroundColor": "rgba(15, 23, 42, 0.1)",
                         "tension": 0.4,
+                        "borderWidth": 3,
+                        "pointRadius": 4,
+                        "fill": True,
                         "yAxisID": "y"
                     },
                     {
                         "label": "Average KDA",
                         "data": kdas,
-                        "borderColor": "#F59E0B",
+                        "borderColor": "#f59e0b",
                         "backgroundColor": "rgba(245, 158, 11, 0.1)",
                         "tension": 0.4,
+                        "borderWidth": 3,
+                        "pointRadius": 4,
                         "yAxisID": "y1"
                     }
                 ]
@@ -102,8 +111,11 @@ def create_chart_configurations(statistics: Dict[str, Any]) -> List[ChartConfig]
                         "position": "left",
                         "title": {
                             "display": True,
-                            "text": "Win Rate (%)"
-                        }
+                            "text": "Win Rate (%)",
+                            "color": "#475569"
+                        },
+                        "ticks": {"color": "#64748b"},
+                        "grid": {"color": "#e2e8f0"}
                     },
                     "y1": {
                         "type": "linear",
@@ -111,17 +123,28 @@ def create_chart_configurations(statistics: Dict[str, Any]) -> List[ChartConfig]
                         "position": "right",
                         "title": {
                             "display": True,
-                            "text": "Average KDA"
+                            "text": "Average KDA",
+                            "color": "#475569"
                         },
+                        "ticks": {"color": "#64748b"},
                         "grid": {
                             "drawOnChartArea": False
                         }
+                    },
+                    "x": {
+                        "ticks": {"color": "#64748b"},
+                        "grid": {"color": "#e2e8f0"}
                     }
                 },
                 "plugins": {
                     "title": {
                         "display": True,
-                        "text": "Performance Trends Over Time"
+                        "text": "Performance Trends Over Time",
+                        "font": {"size": 16, "weight": "bold"},
+                        "color": "#0f172a"
+                    },
+                    "legend": {
+                        "labels": {"color": "#475569"}
                     }
                 }
             }
@@ -143,13 +166,15 @@ def create_chart_configurations(statistics: Dict[str, Any]) -> List[ChartConfig]
                     {
                         "label": "Games Played",
                         "data": games_played,
-                        "backgroundColor": "rgba(99, 102, 241, 0.8)",
+                        "backgroundColor": "#64748b",
+                        "borderRadius": 6,
                         "yAxisID": "y"
                     },
                     {
                         "label": "Win Rate (%)",
                         "data": win_rates,
-                        "backgroundColor": "rgba(16, 185, 129, 0.8)",
+                        "backgroundColor": "#10b981",
+                        "borderRadius": 6,
                         "yAxisID": "y1"
                     }
                 ]
@@ -164,8 +189,11 @@ def create_chart_configurations(statistics: Dict[str, Any]) -> List[ChartConfig]
                         "position": "left",
                         "title": {
                             "display": True,
-                            "text": "Games Played"
-                        }
+                            "text": "Games Played",
+                            "color": "#475569"
+                        },
+                        "ticks": {"color": "#64748b"},
+                        "grid": {"color": "#e2e8f0"}
                     },
                     "y1": {
                         "type": "linear",
@@ -173,17 +201,28 @@ def create_chart_configurations(statistics: Dict[str, Any]) -> List[ChartConfig]
                         "position": "right",
                         "title": {
                             "display": True,
-                            "text": "Win Rate (%)"
+                            "text": "Win Rate (%)",
+                            "color": "#475569"
                         },
+                        "ticks": {"color": "#64748b"},
                         "grid": {
                             "drawOnChartArea": False
                         }
+                    },
+                    "x": {
+                        "ticks": {"color": "#64748b"},
+                        "grid": {"display": False}
                     }
                 },
                 "plugins": {
                     "title": {
                         "display": True,
-                        "text": "Top Champions Performance"
+                        "text": "Top Champions Performance",
+                        "font": {"size": 16, "weight": "bold"},
+                        "color": "#0f172a"
+                    },
+                    "legend": {
+                        "labels": {"color": "#475569"}
                     }
                 }
             }
@@ -198,15 +237,19 @@ def create_chart_configurations(statistics: Dict[str, Any]) -> List[ChartConfig]
             "datasets": [{
                 "label": "Performance Metrics",
                 "data": [
-                    min(statistics.get("avg_kills", 0) * 10, 100),  # Normalize to 0-100
-                    max(0, 100 - (statistics.get("avg_deaths", 0) * 15)),  # Invert deaths
+                    min(statistics.get("avg_kills", 0) * 10, 100),
+                    max(0, 100 - (statistics.get("avg_deaths", 0) * 15)),
                     min(statistics.get("avg_assists", 0) * 8, 100),
                     statistics.get("win_rate", 0),
                     statistics.get("consistency_score", 0)
                 ],
-                "backgroundColor": "rgba(139, 92, 246, 0.2)",
-                "borderColor": "rgba(139, 92, 246, 1)",
-                "pointBackgroundColor": "rgba(139, 92, 246, 1)"
+                "backgroundColor": "rgba(15, 23, 42, 0.15)",
+                "borderColor": "#0f172a",
+                "borderWidth": 3,
+                "pointBackgroundColor": "#0f172a",
+                "pointBorderColor": "#ffffff",
+                "pointBorderWidth": 2,
+                "pointRadius": 5
             }]
         },
         options={
@@ -215,13 +258,24 @@ def create_chart_configurations(statistics: Dict[str, Any]) -> List[ChartConfig]
             "scales": {
                 "r": {
                     "beginAtZero": True,
-                    "max": 100
+                    "max": 100,
+                    "ticks": {
+                        "color": "#64748b",
+                        "backdropColor": "transparent"
+                    },
+                    "grid": {"color": "#e2e8f0"},
+                    "pointLabels": {"color": "#475569", "font": {"size": 12}}
                 }
             },
             "plugins": {
                 "title": {
                     "display": True,
-                    "text": "Overall Performance Profile"
+                    "text": "Overall Performance Profile",
+                    "font": {"size": 16, "weight": "bold"},
+                    "color": "#0f172a"
+                },
+                "legend": {
+                    "labels": {"color": "#475569"}
                 }
             }
         }

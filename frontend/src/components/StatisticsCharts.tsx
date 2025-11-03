@@ -339,10 +339,10 @@ export const StatisticsCharts: React.FC<StatisticsChartsProps> = ({
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+        <h2 className="text-3xl font-bold text-slate-900 mb-2">
           📊 Performance Analytics
         </h2>
-        <p className="text-gray-600">
+        <p className="text-slate-600 text-lg">
           Interactive visualizations of your League of Legends performance
         </p>
       </div>
@@ -351,7 +351,7 @@ export const StatisticsCharts: React.FC<StatisticsChartsProps> = ({
         {charts.map((chart, index) => (
           <div
             key={index}
-            className="bg-white p-6 rounded-lg shadow-lg border border-gray-200"
+            className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow"
           >
             <div className="h-80">
               {renderChart(chart, index)}
@@ -361,11 +361,11 @@ export const StatisticsCharts: React.FC<StatisticsChartsProps> = ({
       </div>
 
       {/* Chart Legend and Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-blue-900 mb-2">
+      <div className="bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-xl p-6">
+        <h3 className="text-lg font-semibold text-slate-900 mb-3">
           📈 Chart Information
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-slate-700">
           <div>
             <strong>Win Rate Chart:</strong> Shows your wins vs losses distribution
           </div>

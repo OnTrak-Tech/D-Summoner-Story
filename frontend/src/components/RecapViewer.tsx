@@ -30,25 +30,25 @@ const StatCard: React.FC<StatCardProps> = ({
   color = 'blue' 
 }) => {
   const colorClasses = {
-    blue: 'bg-orange-50 border-orange-200 text-orange-800',
-    green: 'bg-amber-50 border-amber-200 text-amber-800',
-    purple: 'bg-orange-50 border-orange-200 text-orange-800',
-    yellow: 'bg-yellow-50 border-yellow-200 text-yellow-800',
-    red: 'bg-red-50 border-red-200 text-red-800',
+    blue: 'bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200 text-slate-800',
+    green: 'bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200 text-emerald-800',
+    purple: 'bg-gradient-to-br from-violet-50 to-violet-100 border-violet-200 text-violet-800',
+    yellow: 'bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200 text-amber-800',
+    red: 'bg-gradient-to-br from-rose-50 to-rose-100 border-rose-200 text-rose-800',
   };
 
   return (
-    <div className={`p-4 rounded-lg border-2 ${colorClasses[color]}`}>
+    <div className={`p-5 rounded-xl border ${colorClasses[color]} shadow-sm hover:shadow-md transition-shadow`}>
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium opacity-75">{title}</p>
-          <p className="text-2xl font-bold">{value}</p>
+        <div className="flex-1">
+          <p className="text-xs font-semibold uppercase tracking-wide opacity-60 mb-1">{title}</p>
+          <p className="text-3xl font-bold mb-1">{value}</p>
           {subtitle && (
-            <p className="text-xs opacity-60 mt-1">{subtitle}</p>
+            <p className="text-xs opacity-70">{subtitle}</p>
           )}
         </div>
         {icon && (
-          <div className="text-2xl opacity-75">
+          <div className="text-3xl opacity-40 ml-3">
             {icon}
           </div>
         )}
@@ -90,41 +90,44 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
+    <div className="w-full max-w-5xl mx-auto">
       {/* Header */}
-      <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-t-lg p-6">
+      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white rounded-t-2xl p-8 shadow-2xl">
         <div className="text-center">
-          <h1 className="text-3xl font-bold mb-2">
-            🎮 {recapData.summoner_name}'s Year in Review
+          <div className="inline-block mb-3">
+            <span className="text-5xl">🎮</span>
+          </div>
+          <h1 className="text-4xl font-bold mb-3 tracking-tight">
+            {recapData.summoner_name}
           </h1>
-          <p className="text-orange-100">
-            {recapData.region.toUpperCase()} • {new Date().getFullYear()}
+          <p className="text-slate-300 text-lg">
+            {recapData.region.toUpperCase()} • {new Date().getFullYear()} Year in Review
           </p>
         </div>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="bg-white border-b">
+      <div className="bg-white border-b border-slate-200">
         <nav className="flex">
           {[
             { key: 'overview', label: 'Overview', icon: '📊' },
             { key: 'stats', label: 'Statistics', icon: '📈' },
-            { key: 'charts', label: 'Charts', icon: '📊' },
+            { key: 'charts', label: 'Charts', icon: '📉' },
             { key: 'achievements', label: 'Achievements', icon: '🏆' },
           ].map(({ key, label, icon }) => (
             <button
               key={key}
               onClick={() => setActiveTab(key as typeof activeTab)}
               className={`
-                flex-1 py-3 px-4 text-center font-medium transition-colors
+                flex-1 py-4 px-4 text-center font-semibold transition-all text-sm
                 ${activeTab === key
-                  ? 'text-orange-600 border-b-2 border-orange-600 bg-orange-50'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  ? 'text-slate-900 border-b-3 border-slate-900 bg-slate-50'
+                  : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
                 }
               `}
             >
-              <span className="mr-2">{icon}</span>
-              {label}
+              <span className="mr-1.5 text-base">{icon}</span>
+              <span className="hidden sm:inline">{label}</span>
             </button>
           ))}
         </nav>
@@ -135,15 +138,19 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
         {activeTab === 'overview' && (
           <div className="p-6 space-y-6">
             {/* AI Narrative */}
-            <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg p-6 border border-orange-200">
-              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-                <span className="mr-2">🤖</span>
-                Your Year in Review
-              </h2>
-              <div className="prose prose-lg text-gray-700 leading-relaxed">
+            <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-8 border border-slate-200 shadow-sm">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center">
+                  <span className="text-xl">✨</span>
+                </div>
+                <h2 className="text-2xl font-bold text-slate-900">
+                  Your Story
+                </h2>
+              </div>
+              <div className="prose prose-slate max-w-none">
                 {narrative.split('\n').map((paragraph, index) => (
                   paragraph.trim() && (
-                    <p key={index} className="mb-3">
+                    <p key={index} className="text-slate-700 leading-relaxed mb-4 text-base">
                       {paragraph}
                     </p>
                   )
@@ -185,17 +192,17 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
             {/* Highlights */}
             {highlights && highlights.length > 0 && (
               <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center">
-                  <span className="mr-2">✨</span>
-                  Year Highlights
+                <h3 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <span>🌟</span>
+                  <span>Highlights</span>
                 </h3>
                 <div className="grid gap-3">
                   {highlights.map((highlight, index) => (
                     <div
                       key={index}
-                      className="bg-yellow-50 border border-yellow-200 rounded-lg p-4"
+                      className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow"
                     >
-                      <p className="text-gray-800">{highlight}</p>
+                      <p className="text-slate-800 font-medium">{highlight}</p>
                     </div>
                   ))}
                 </div>
@@ -347,10 +354,10 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
                   {achievements.map((achievement, index) => (
                     <div
                       key={index}
-                      className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-4 flex items-center"
+                      className="bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-5 flex items-center shadow-sm hover:shadow-md transition-shadow"
                     >
-                      <div className="text-2xl mr-3">🏆</div>
-                      <p className="text-gray-800 font-medium">{achievement}</p>
+                      <div className="text-3xl mr-4">🏆</div>
+                      <p className="text-slate-800 font-semibold">{achievement}</p>
                     </div>
                   ))}
                 </div>
@@ -365,10 +372,10 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
                   {fun_facts.map((fact, index) => (
                     <div
                       key={index}
-                      className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center"
+                      className="bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-200 rounded-xl p-5 flex items-center shadow-sm hover:shadow-md transition-shadow"
                     >
-                      <div className="text-2xl mr-3">💡</div>
-                      <p className="text-gray-800">{fact}</p>
+                      <div className="text-3xl mr-4">💡</div>
+                      <p className="text-slate-800 font-medium">{fact}</p>
                     </div>
                   ))}
                 </div>
@@ -383,10 +390,10 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
                   {recommendations.map((recommendation, index) => (
                     <div
                       key={index}
-                      className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center"
+                      className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-5 flex items-center shadow-sm hover:shadow-md transition-shadow"
                     >
-                      <div className="text-2xl mr-3">💪</div>
-                      <p className="text-gray-800">{recommendation}</p>
+                      <div className="text-3xl mr-4">💪</div>
+                      <p className="text-slate-800 font-medium">{recommendation}</p>
                     </div>
                   ))}
                 </div>
@@ -396,22 +403,22 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
         )}
 
         {/* Action Buttons */}
-        <div className="p-6 border-t bg-gray-50 rounded-b-lg">
+        <div className="p-6 border-t border-slate-200 bg-slate-50 rounded-b-2xl">
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
               onClick={() => setShowShareModal(true)}
-              className="px-6 py-3 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 transition-colors flex items-center justify-center"
+              className="px-8 py-4 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
             >
-              <span className="mr-2">📤</span>
-              Share My Year in Review
+              <span className="text-lg">📤</span>
+              <span>Share My Recap</span>
             </button>
             {onStartNew && (
               <button
                 onClick={onStartNew}
-                className="px-6 py-3 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition-colors flex items-center justify-center"
+                className="px-8 py-4 bg-white border-2 border-slate-300 text-slate-700 rounded-xl font-semibold hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
               >
-                <span className="mr-2">🔄</span>
-                Generate Another
+                <span className="text-lg">🔄</span>
+                <span>New Search</span>
               </button>
             )}
           </div>
