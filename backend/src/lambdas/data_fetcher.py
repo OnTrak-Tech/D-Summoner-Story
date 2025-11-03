@@ -14,7 +14,7 @@ import logging
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from shared.models import FetchRequest, Summoner
+from shared.models import FetchRequest, RiotSummoner
 from shared.riot_client import get_riot_client, RiotAPIError, SummonerNotFound
 from shared.aws_clients import get_s3_client, get_dynamodb_client, get_bucket_name, get_table_name
 from shared.utils import (
@@ -260,7 +260,7 @@ def handle_background_processing(event: Dict[str, Any], context: Any) -> Dict[st
         processing_jobs_table = get_table_name("PROCESSING_JOBS")
         
         # Create minimal summoner object for match fetching
-        summoner = Summoner(
+        summoner = RiotSummoner(
             id="",
             account_id="",
             puuid=summoner_puuid,
