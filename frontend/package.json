@@ -10,7 +10,9 @@
     "test": "echo \"No frontend tests yet\""
   },
   "dependencies": {
+    "@types/d3": "^7.4.3",
     "chart.js": "^4.4.3",
+    "d3": "^7.9.0",
     "react": "^18.3.1",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.3.1"
