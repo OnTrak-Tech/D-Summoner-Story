@@ -24,7 +24,6 @@ import {
   Doughnut,
   Radar,
 } from 'react-chartjs-2';
-import { ChampionConstellation } from './ChampionConstellation';
 
 // Register Chart.js components
 ChartJS.register(
@@ -348,18 +347,6 @@ export const StatisticsCharts: React.FC<StatisticsChartsProps> = ({
         </p>
       </div>
 
-      {/* Champion Mastery Constellation */}
-      {statistics.champion_stats && statistics.champion_stats.length > 0 && (
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
-          <ChampionConstellation 
-            championStats={statistics.champion_stats.map(stat => ({
-              ...stat,
-              avg_kda: stat.avg_kda || 1.0
-            }))}
-          />
-        </div>
-      )}
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {charts.map((chart, index) => (
           <div
@@ -379,9 +366,6 @@ export const StatisticsCharts: React.FC<StatisticsChartsProps> = ({
           📈 Chart Information
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-slate-700">
-          <div>
-            <strong>Champion Constellation:</strong> Interactive D3 visualization showing champion relationships and mastery
-          </div>
           <div>
             <strong>Win Rate Chart:</strong> Shows your wins vs losses distribution
           </div>
