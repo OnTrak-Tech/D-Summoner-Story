@@ -4,7 +4,7 @@ These models define the structure for API requests, responses, and internal data
 """
 
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, List, Literal, Optional, Any
 from pydantic import BaseModel, Field, validator
@@ -136,14 +136,22 @@ class ProcessedStats:
     most_played_champion: Optional[ChampionStat]
     highest_winrate_champion: Optional[ChampionStat]
     best_kda_champion: Optional[ChampionStat]
-    improvement_trend: float  # Positive = improving, negative = declining
-    consistency_score: float  # 0-100, higher = more consistent performance
+    improvement_trend: float  
+    consistency_score: float  
+    # AI Analytics fields
+    highlight_matches: List[Dict[str, Any]] = field(default_factory=list)
+    champion_improvements: List[str] = field(default_factory=list)
+    behavioral_patterns: List[str] = field(default_factory=list)
+    personality_profile: Optional[Dict[str, Any]] = None
+    champion_suggestions: List[Dict[str, Any]] = field(default_factory=list)
+    next_season_prediction: Optional[Dict[str, Any]] = None
+    rival_analysis: Optional[Dict[str, Any]] = None
 
 
 # DynamoDB Models
 class PlayerStatsItem(BaseModel):
-    PK: str  # PLAYER#{summoner_id}
-    SK: str  # STATS#{year}
+    PK: str  
+    SK: str  
     session_id: str
     summoner_name: str
     region: str
@@ -157,7 +165,7 @@ class PlayerStatsItem(BaseModel):
 
 
 class ProcessingJobItem(BaseModel):
-    PK: str  # JOB#{job_id}
+    PK: str 
     session_id: str
     summoner_name: str
     region: str

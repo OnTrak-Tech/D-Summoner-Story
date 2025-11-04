@@ -460,7 +460,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 "achievements": generated_insight.achievements,
                 "fun_facts": generated_insight.fun_facts,
                 "recommendations": generated_insight.recommendations,
-                "highlight_matches": getattr(mock_stats, 'highlight_matches', []),
+                "highlight_matches": real_stats.highlight_matches,
                 "champion_improvements": champion_improvements,
                 "behavioral_patterns": behavioral_insights,
                 "personality_profile": personality_profile,
