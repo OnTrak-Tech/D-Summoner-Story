@@ -169,7 +169,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ onRecentSearchSelect }) 
               {/* Footer */}
               <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                  Built with ❤️ for the League community
+                  Built for the League of Legends community
                 </p>
               </div>
             </div>

@@ -322,7 +322,7 @@ def create_processing_job(session_id: str, summoner_name: str, region: str) -> P
     """Create a new processing job item for DynamoDB"""
     job_id = generate_job_id(session_id, summoner_name, region)
     current_time = datetime.now(timezone.utc).isoformat()
-    ttl = int(time.time()) + (7 * 24 * 60 * 60)  # 7 days TTL
+    ttl = int(time.time()) + (7 * 24 * 60 * 60)  
     
     return ProcessingJobItem(
         PK=f"JOB#{job_id}",
@@ -341,7 +341,7 @@ def create_player_stats_item(session_id: str, stats: ProcessedStats) -> PlayerSt
     """Create a player stats item for DynamoDB"""
     current_time = datetime.now(timezone.utc).isoformat()
     current_year = datetime.now().year
-    ttl = int(time.time()) + (365 * 24 * 60 * 60)  # 1 year TTL
+    ttl = int(time.time()) + (365 * 24 * 60 * 60)  
     
     # Convert dataclasses to dictionaries for DynamoDB storage
     champion_stats_dict = [asdict(champ) for champ in stats.champion_stats]
@@ -663,10 +663,10 @@ def predict_next_season(stats: ProcessedStats) -> Dict[str, Any]:
 def generate_rival_analysis(stats: ProcessedStats) -> Dict[str, Any]:
     """Generate competitive analysis vs similar players"""
     # Calculate realistic percentile rankings based on actual performance
-    win_rate_percentile = min(95, max(5, int((stats.win_rate - 30) * 2)))  # 30-80% win rate maps to 5-95%
-    kda_percentile = min(95, max(5, int((stats.avg_kda - 0.5) * 40)))  # 0.5-2.5 KDA maps to 5-95%
-    consistency_percentile = int(stats.consistency_score * 0.9)  # Use actual consistency
-    games_percentile = min(90, max(10, int(min(stats.total_games / 5, 90))))  # Scale games played
+    win_rate_percentile = min(95, max(5, int((stats.win_rate - 30) * 2)))  
+    kda_percentile = min(95, max(5, int((stats.avg_kda - 0.5) * 40))) 
+    consistency_percentile = int(stats.consistency_score * 0.9)  
+    games_percentile = min(90, max(10, int(min(stats.total_games / 5, 90))))  
     
     # Determine rank tier for comparison
     if stats.win_rate >= 60:

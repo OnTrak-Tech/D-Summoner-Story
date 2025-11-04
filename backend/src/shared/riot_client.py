@@ -71,7 +71,7 @@ class RiotAPIClient:
         self._static_api_key = api_key
         self._cached_api_key = None
         self._api_key_cache_time = 0
-        self._api_key_cache_ttl = 300  # 5 minutes
+        self._api_key_cache_ttl = 300  
         
         if not api_key:
             # Initialize secrets client for dynamic key fetching
@@ -101,7 +101,7 @@ class RiotAPIClient:
         self.failure_count = 0
         self.circuit_open_until = 0
         self.max_failures = 5
-        self.circuit_timeout = 60  # seconds
+        self.circuit_timeout = 60 
     
     def _check_circuit_breaker(self):
         """Check if circuit breaker is open"""
@@ -127,7 +127,7 @@ class RiotAPIClient:
             try:
                 # Implement basic rate limiting
                 current_time = time.time()
-                if current_time - self.last_request_time < 1.2:  # 1.2 seconds between requests
+                if current_time - self.last_request_time < 1.2: 
                     time.sleep(1.2 - (current_time - self.last_request_time))
 
                 logger.debug(f"Making request to {url}")
@@ -138,7 +138,7 @@ class RiotAPIClient:
                 self._handle_rate_limit(response)
 
                 if response.status_code == 200:
-                    self.failure_count = 0  # Reset failure count on success
+                    self.failure_count = 0  
                     return response.json()
                 elif response.status_code == 404:
                     raise SummonerNotFound("Summoner not found")
@@ -175,7 +175,7 @@ class RiotAPIClient:
     
     def _handle_rate_limit(self, response: requests.Response):
         if response.status_code == 429:
-            retry_after = int(response.headers.get('Retry-After', 60))  # Default to 60 seconds
+            retry_after = int(response.headers.get('Retry-After', 60))  
             logger.warning(f"Rate limited, waiting {retry_after} seconds")
             time.sleep(retry_after)
             raise RateLimitExceeded(f"Rate limited, retry after {retry_after} seconds")
@@ -384,7 +384,7 @@ class RiotAPIClient:
                 try:
                     match_details = self.get_match_details(match_id, region)
                     all_matches.append(match_details)
-                    time.sleep(0.1)  # Small delay to avoid hitting rate limits
+                    time.sleep(0.1)  
                 except Exception as e:
                     logger.warning(f"Failed to get details for match {match_id}: {e}")
                     continue

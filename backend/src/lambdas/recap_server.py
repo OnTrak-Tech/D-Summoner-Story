@@ -11,7 +11,7 @@ import logging
 
 # Import shared modules
 import sys
-sys.path.append('/opt/python')  # Lambda layer path
+sys.path.append('/opt/python') 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from shared.models import RecapResponse, ChartConfig
@@ -152,7 +152,7 @@ def create_chart_configurations(statistics: Dict[str, Any]) -> List[ChartConfig]
         charts.append(monthly_chart)
     
     # 3. Champion Performance Bar Chart
-    champion_stats = statistics.get("champion_stats", [])[:5]  # Top 5 champions
+    champion_stats = statistics.get("champion_stats", [])[:5]  
     if champion_stats:
         champion_names = [champ['champion_name'] for champ in champion_stats]
         games_played = [champ['games_played'] for champ in champion_stats]
@@ -316,7 +316,7 @@ Answer in 2-3 sentences. Be helpful and specific."""
 
 def generate_share_url(session_id: str) -> str:
     """Generate shareable URL for the recap"""
-    base_url = os.environ.get('WEBSITE_URL', 'https://your-domain.com')
+    base_url = os.environ.get('WEBSITE_URL', 'https://d89hvhr82jyuz.cloudfront.net/')
     return f"{base_url}/share/{session_id}"
 
 

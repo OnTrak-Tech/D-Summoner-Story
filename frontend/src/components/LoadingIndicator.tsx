@@ -10,7 +10,7 @@ interface LoadingIndicatorProps {
   message: string;
   step: 'authenticating' | 'fetching' | 'processing' | 'generating';
   summonerName?: string;
-  estimatedTimeRemaining?: number; // in seconds
+  estimatedTimeRemaining?: number; 
 }
 
 interface StepInfo {
@@ -25,13 +25,13 @@ const STEP_INFO: Record<LoadingIndicatorProps['step'], StepInfo> = {
     icon: '🔐',
     title: 'Authenticating',
     description: 'Verifying your summoner information',
-    color: 'blue',
+    color: 'orange',
   },
   fetching: {
     icon: '📊',
     title: 'Fetching Data',
     description: 'Gathering your match history from Riot Games',
-    color: 'purple',
+    color: 'burnt orange',
   },
   processing: {
     icon: '⚡',

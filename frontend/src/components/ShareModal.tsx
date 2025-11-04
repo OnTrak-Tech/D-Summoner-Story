@@ -32,7 +32,7 @@ const SHARE_PLATFORMS: SharePlatform[] = [
   },
   {
     name: "Facebook",
-    icon: "📘",
+    icon: "👤",
     color: "bg-blue-700 hover:bg-blue-800",
     url: (text, url) =>
       `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
@@ -92,7 +92,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 
     // Set canvas size
     canvas.width = 1200;
-    canvas.height = 630; // Twitter card dimensions
+    canvas.height = 630; 
 
     // Background gradient
     const gradient = ctx.createLinearGradient(

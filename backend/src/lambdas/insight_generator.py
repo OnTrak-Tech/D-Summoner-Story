@@ -284,10 +284,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         total_losses = total_games - total_wins
         
         # Estimate kills/deaths/assists from KDA and games
-        estimated_deaths_per_game = max(1, 8 - (avg_kda * 2))  # Higher KDA = fewer deaths
+        estimated_deaths_per_game = max(1, 8 - (avg_kda * 2))  
         total_deaths = int(total_games * estimated_deaths_per_game)
         total_kills_assists = int(total_deaths * avg_kda)
-        total_kills = int(total_kills_assists * 0.4)  # Assume 40% kills, 60% assists
+        total_kills = int(total_kills_assists * 0.4)  
         total_assists = total_kills_assists - total_kills
         
         # Parse champion stats from DynamoDB
@@ -297,7 +297,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Convert champion stats if available
         if champion_stats_data:
             from shared.models import ChampionStat
-            for champ_data in champion_stats_data[:5]:  # Top 5 champions
+            for champ_data in champion_stats_data[:5]:  
                 champ_stat = ChampionStat(
                     champion_id=champ_data.get('champion_id', 0),
                     champion_name=champ_data.get('champion_name', 'Unknown'),
@@ -351,7 +351,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             total_assists=total_assists,
             avg_kda=avg_kda,
             champion_stats=champion_stats_objects,
-            monthly_trends=[],  # Would need to parse monthly_trends_data
+            monthly_trends=[], 
             most_played_champion=most_played_champion,
             highest_winrate_champion=highest_winrate_champion,
             best_kda_champion=best_kda_champion,
@@ -390,9 +390,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             try:
                 highlights = json.loads(highlights_response)
                 if not isinstance(highlights, list):
-                    highlights = [highlights_response]  # Fallback if not JSON
+                    highlights = [highlights_response]  
             except json.JSONDecodeError:
-                highlights = [highlights_response]  # Use raw response as single highlight
+                highlights = [highlights_response]  
             
             # Generate achievements
             achievements = create_achievements_prompt(real_stats)
@@ -435,7 +435,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             # Create generated insight object
             generated_insight = GeneratedInsight(
                 narrative=narrative,
-                highlights=highlights[:5],  # Limit to 5 highlights
+                highlights=highlights[:5], 
                 achievements=achievements,
                 fun_facts=fun_facts,
                 recommendations=recommendations
