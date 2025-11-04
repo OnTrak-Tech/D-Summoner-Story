@@ -264,6 +264,12 @@ def process_match_statistics(matches: List[RiotMatch], summoner_puuid: str) -> P
     processed_stats.champion_improvements = champion_improvements
     processed_stats.behavioral_patterns = behavioral_patterns
     
+    # Add AI personality features
+    processed_stats.personality_profile = analyze_personality_profile(processed_stats)
+    processed_stats.champion_suggestions = suggest_champion_matches(processed_stats)
+    processed_stats.next_season_prediction = predict_next_season(processed_stats)
+    processed_stats.rival_analysis = generate_rival_analysis(processed_stats)
+    
     return processed_stats
 
 
@@ -472,3 +478,224 @@ def identify_behavioral_patterns(monthly_data):
         if monthly_data[-1].avg_kda > monthly_data[0].avg_kda * 1.2:
             patterns.append("Significant improvement from early to late season")
     return patterns[:5]
+
+def analyze_personality_profile(stats: ProcessedStats) -> Dict[str, Any]:
+    """Analyze player's personality based on gameplay patterns"""
+    # Calculate key metrics
+    avg_kda = stats.avg_kda
+    win_rate = stats.win_rate
+    total_games = stats.total_games
+    consistency = stats.consistency_score
+    improvement = stats.improvement_trend
+    
+    # Champion diversity
+    champ_diversity = len(stats.champion_stats)
+    most_played_pct = (stats.champion_stats[0].games_played / total_games * 100) if stats.champion_stats else 0
+    
+    # Determine personality type
+    personality_type = "The Balanced Player"
+    description = "A well-rounded player with consistent performance."
+    traits = []
+    
+    if avg_kda >= 2.5 and win_rate >= 60:
+        personality_type = "The Carry God"
+        description = "Dominant player who consistently carries games with high KDA and win rate."
+        traits = ["High impact", "Consistent winner", "Team carry"]
+    elif avg_kda < 1.0 and win_rate < 45:
+        personality_type = "The Learning Warrior"
+        description = "Still developing skills but shows determination to improve."
+        traits = ["Growth mindset", "Persistent", "Room for improvement"]
+    elif most_played_pct > 40:
+        personality_type = "The One-Trick Pony"
+        description = "Masters a few champions with deep expertise and dedication."
+        traits = ["Specialist", "Focused", "Champion mastery"]
+    elif champ_diversity > 20:
+        personality_type = "The Versatile Explorer"
+        description = "Loves trying different champions and adapting to various playstyles."
+        traits = ["Adaptable", "Experimental", "Diverse"]
+    elif consistency > 80:
+        personality_type = "The Reliable Teammate"
+        description = "Consistent performance you can count on game after game."
+        traits = ["Stable", "Dependable", "Consistent"]
+    elif improvement > 0.1:
+        personality_type = "The Rising Star"
+        description = "Shows clear improvement trends and growing skill over time."
+        traits = ["Improving", "Ambitious", "Upward trajectory"]
+    
+    return {
+        "type": personality_type,
+        "description": description,
+        "traits": traits,
+        "key_stats": {
+            "avg_kda": avg_kda,
+            "win_rate": win_rate,
+            "consistency": consistency,
+            "champion_diversity": champ_diversity
+        }
+    }
+
+def suggest_champion_matches(stats: ProcessedStats) -> List[Dict[str, Any]]:
+    """Suggest champions based on playstyle analysis"""
+    suggestions = []
+    
+    avg_kda = stats.avg_kda
+    win_rate = stats.win_rate
+    
+    # Analyze current champion performance
+    if stats.champion_stats:
+        top_champ = stats.champion_stats[0]
+        avg_kills = sum(c.total_kills for c in stats.champion_stats) / len(stats.champion_stats) / max(1, sum(c.games_played for c in stats.champion_stats))
+        avg_deaths = sum(c.total_deaths for c in stats.champion_stats) / len(stats.champion_stats) / max(1, sum(c.games_played for c in stats.champion_stats))
+    else:
+        avg_kills = 5
+        avg_deaths = 5
+    
+    # High KDA, aggressive playstyle
+    if avg_kda >= 2.0 and avg_kills > 6:
+        suggestions.append({
+            "champion": "Yasuo",
+            "reason": "Your aggressive high-KDA playstyle would excel with this high-skill carry",
+            "confidence": 85
+        })
+        suggestions.append({
+            "champion": "Zed",
+            "reason": "Perfect for players who can maintain high KDA through skilled plays",
+            "confidence": 80
+        })
+    
+    # Consistent, supportive playstyle
+    elif avg_deaths < 4 and win_rate > 55:
+        suggestions.append({
+            "champion": "Orianna",
+            "reason": "Your consistent, low-death playstyle suits this safe, impactful mage",
+            "confidence": 90
+        })
+        suggestions.append({
+            "champion": "Thresh",
+            "reason": "Your game sense and consistency would shine in the support role",
+            "confidence": 75
+        })
+    
+    # Learning/improving player
+    elif win_rate < 50:
+        suggestions.append({
+            "champion": "Garen",
+            "reason": "Simple mechanics let you focus on macro play and fundamentals",
+            "confidence": 95
+        })
+        suggestions.append({
+            "champion": "Annie",
+            "reason": "Easy to learn, helps you focus on positioning and game knowledge",
+            "confidence": 85
+        })
+    
+    # Versatile player
+    else:
+        suggestions.append({
+            "champion": "Graves",
+            "reason": "Flexible pick that works in multiple roles, suits your adaptable style",
+            "confidence": 70
+        })
+        suggestions.append({
+            "champion": "Sylas",
+            "reason": "High skill ceiling champion that rewards game knowledge and adaptability",
+            "confidence": 65
+        })
+    
+    return suggestions[:3]
+
+def predict_next_season(stats: ProcessedStats) -> Dict[str, Any]:
+    """Predict next season performance based on trends"""
+    current_rank_estimate = "Silver"
+    if stats.win_rate >= 65:
+        current_rank_estimate = "Gold+"
+    elif stats.win_rate >= 55:
+        current_rank_estimate = "Silver"
+    elif stats.win_rate >= 45:
+        current_rank_estimate = "Bronze"
+    else:
+        current_rank_estimate = "Iron/Bronze"
+    
+    # Predict based on improvement trend
+    predicted_rank = current_rank_estimate
+    confidence = 60
+    
+    if stats.improvement_trend > 0.15:
+        if "Iron" in current_rank_estimate or "Bronze" in current_rank_estimate:
+            predicted_rank = "Silver"
+            confidence = 75
+        elif "Silver" in current_rank_estimate:
+            predicted_rank = "Gold"
+            confidence = 70
+        else:
+            predicted_rank = "Higher Gold/Platinum"
+            confidence = 65
+    elif stats.improvement_trend < -0.1:
+        confidence = 50
+        predicted_rank = f"Similar to current ({current_rank_estimate})"
+    
+    # Timeline prediction
+    timeline = "mid-season"
+    if stats.improvement_trend > 0.2:
+        timeline = "early season"
+    elif stats.improvement_trend < 0:
+        timeline = "late season (if improvement continues)"
+    
+    return {
+        "current_estimate": current_rank_estimate,
+        "predicted_rank": predicted_rank,
+        "timeline": timeline,
+        "confidence": confidence,
+        "key_factors": [
+            f"Win rate trend: {'+' if stats.improvement_trend > 0 else ''}{'improving' if stats.improvement_trend > 0 else 'declining' if stats.improvement_trend < 0 else 'stable'}",
+            f"Consistency: {stats.consistency_score:.0f}%",
+            f"Current performance: {stats.win_rate:.1f}% win rate"
+        ]
+    }
+
+def generate_rival_analysis(stats: ProcessedStats) -> Dict[str, Any]:
+    """Generate competitive analysis vs similar players"""
+    # Simulate percentile rankings (in real app, this would query actual data)
+    win_rate_percentile = min(95, max(5, int(stats.win_rate * 1.5)))
+    kda_percentile = min(95, max(5, int(stats.avg_kda * 30)))
+    consistency_percentile = int(stats.consistency_score * 0.8)
+    games_percentile = min(90, max(10, int(stats.total_games / 10)))
+    
+    # Determine rank tier for comparison
+    if stats.win_rate >= 60:
+        comparison_group = "Gold+ players"
+    elif stats.win_rate >= 50:
+        comparison_group = "Silver players"
+    else:
+        comparison_group = "Bronze players"
+    
+    strengths = []
+    weaknesses = []
+    
+    if win_rate_percentile >= 70:
+        strengths.append(f"Win rate ({stats.win_rate:.1f}%) - Top {100-win_rate_percentile}%")
+    elif win_rate_percentile <= 30:
+        weaknesses.append(f"Win rate ({stats.win_rate:.1f}%) - Bottom {win_rate_percentile}%")
+    
+    if kda_percentile >= 70:
+        strengths.append(f"KDA ({stats.avg_kda:.2f}) - Top {100-kda_percentile}%")
+    elif kda_percentile <= 30:
+        weaknesses.append(f"KDA ({stats.avg_kda:.2f}) - Bottom {kda_percentile}%")
+    
+    if consistency_percentile >= 70:
+        strengths.append(f"Consistency ({stats.consistency_score:.0f}%) - Top {100-consistency_percentile}%")
+    elif consistency_percentile <= 30:
+        weaknesses.append(f"Consistency ({stats.consistency_score:.0f}%) - Bottom {consistency_percentile}%")
+    
+    return {
+        "comparison_group": comparison_group,
+        "percentiles": {
+            "win_rate": win_rate_percentile,
+            "kda": kda_percentile,
+            "consistency": consistency_percentile,
+            "games_played": games_percentile
+        },
+        "strengths": strengths,
+        "weaknesses": weaknesses,
+        "overall_ranking": f"Top {100 - int((win_rate_percentile + kda_percentile + consistency_percentile) / 3)}% of {comparison_group.lower()}"
+    }

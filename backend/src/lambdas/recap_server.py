@@ -410,7 +410,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         "What are my biggest strengths?",
                         "Which champions should I focus on?",
                         "Am I getting better over time?",
-                        "What should I work on next season?"
+                        "What should I work on next season?",
+                        "What's my personality type?",
+                        "What rank will I reach next season?",
+                        "How do I compare to other players?"
                     ]
                 })
             except Exception as e:
@@ -468,6 +471,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             "highlight_matches": insights.get("highlight_matches", []),
             "champion_improvements": insights.get("champion_improvements", []),
             "behavioral_patterns": insights.get("behavioral_patterns", []),
+            "personality_profile": insights.get("personality_profile", {}),
+            "champion_suggestions": insights.get("champion_suggestions", []),
+            "next_season_prediction": insights.get("next_season_prediction", {}),
+            "rival_analysis": insights.get("rival_analysis", {}),
             "generated_at": insights.get("generated_at"),
             "served_at": get_current_timestamp()
         })

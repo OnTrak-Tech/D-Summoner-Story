@@ -62,7 +62,7 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
   onShare,
   onStartNew,
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'charts' | 'achievements' | 'ask-ai'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'charts' | 'achievements' | 'ai-insights' | 'ask-ai'>('overview');
   const [showShareModal, setShowShareModal] = useState(false);
   const [messages, setMessages] = useState<Array<{type: 'question' | 'answer', text: string}>>([]);
   const [currentQuestion, setCurrentQuestion] = useState('');
@@ -147,6 +147,7 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
             { key: 'stats', label: 'Statistics', icon: '📈' },
             { key: 'charts', label: 'Charts', icon: '📉' },
             { key: 'achievements', label: 'Achievements', icon: '🏆' },
+            { key: 'ai-insights', label: 'AI Insights', icon: '🧠' },
             { key: 'ask-ai', label: 'Ask AI', icon: '🤖' },
           ].map(({ key, label, icon }) => (
             <button
@@ -377,6 +378,155 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
           </div>
         )}
 
+        {/* AI Insights Tab */}
+        {activeTab === 'ai-insights' && (
+          <div className="p-6 space-y-6">
+            {/* Personality Profile */}
+            {(recapData as any).personality_profile && (
+              <div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <span>🧠</span>
+                  <span>Your Gaming Personality</span>
+                </h3>
+                <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-2xl p-6 shadow-sm">
+                  <div className="text-center mb-4">
+                    <h4 className="text-2xl font-bold text-purple-900 mb-2">
+                      {(recapData as any).personality_profile.type}
+                    </h4>
+                    <p className="text-purple-700 text-lg">
+                      {(recapData as any).personality_profile.description}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-2 mb-4">
+                    {(recapData as any).personality_profile.traits?.map((trait: string, index: number) => (
+                      <span key={index} className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
+                        {trait}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Champion Suggestions */}
+            {(recapData as any).champion_suggestions && (recapData as any).champion_suggestions.length > 0 && (
+              <div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <span>🎯</span>
+                  <span>Perfect Champions for You</span>
+                </h3>
+                <div className="grid gap-4">
+                  {(recapData as any).champion_suggestions.map((suggestion: any, index: number) => (
+                    <div key={index} className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-5 shadow-sm">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-xl font-bold text-blue-900">{suggestion.champion}</h4>
+                        <div className="flex items-center gap-1">
+                          <span className="text-sm text-blue-600">Match:</span>
+                          <span className="font-bold text-blue-800">{suggestion.confidence}%</span>
+                        </div>
+                      </div>
+                      <p className="text-blue-700">{suggestion.reason}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Next Season Prediction */}
+            {(recapData as any).next_season_prediction && (
+              <div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <span>🔮</span>
+                  <span>Next Season Prediction</span>
+                </h3>
+                <div className="bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200 rounded-2xl p-6 shadow-sm">
+                  <div className="text-center mb-4">
+                    <div className="text-4xl font-bold text-amber-900 mb-2">
+                      {(recapData as any).next_season_prediction.predicted_rank}
+                    </div>
+                    <p className="text-amber-700 text-lg mb-2">
+                      Expected by {(recapData as any).next_season_prediction.timeline}
+                    </p>
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-amber-600">Confidence:</span>
+                      <span className="font-bold text-amber-800">
+                        {(recapData as any).next_season_prediction.confidence}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <h5 className="font-semibold text-amber-900">Key Factors:</h5>
+                    {(recapData as any).next_season_prediction.key_factors?.map((factor: string, index: number) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <span className="text-amber-500">•</span>
+                        <span className="text-amber-700">{factor}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Rival Analysis */}
+            {(recapData as any).rival_analysis && (
+              <div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <span>⚔️</span>
+                  <span>How You Stack Up</span>
+                </h3>
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6 shadow-sm">
+                  <div className="text-center mb-6">
+                    <div className="text-2xl font-bold text-green-900 mb-2">
+                      {(recapData as any).rival_analysis.overall_ranking}
+                    </div>
+                    <p className="text-green-700">
+                      Compared to {(recapData as any).rival_analysis.comparison_group}
+                    </p>
+                  </div>
+                  
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {/* Strengths */}
+                    {(recapData as any).rival_analysis.strengths?.length > 0 && (
+                      <div>
+                        <h5 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
+                          <span>💪</span>
+                          <span>Your Strengths</span>
+                        </h5>
+                        <div className="space-y-2">
+                          {(recapData as any).rival_analysis.strengths.map((strength: string, index: number) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <span className="text-green-500">✓</span>
+                              <span className="text-green-700 text-sm">{strength}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Areas for Improvement */}
+                    {(recapData as any).rival_analysis.weaknesses?.length > 0 && (
+                      <div>
+                        <h5 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
+                          <span>🎯</span>
+                          <span>Growth Areas</span>
+                        </h5>
+                        <div className="space-y-2">
+                          {(recapData as any).rival_analysis.weaknesses.map((weakness: string, index: number) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <span className="text-orange-500">→</span>
+                              <span className="text-green-700 text-sm">{weakness}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        
         {/* Ask AI Tab */}
         {activeTab === 'ask-ai' && (
           <div className="p-6 space-y-6">

@@ -21,7 +21,9 @@ from shared.aws_clients import (
     get_bucket_name, get_table_name, AWSClientError
 )
 from shared.utils import (
-    format_lambda_response, setup_logging, generate_s3_key, get_current_timestamp
+    format_lambda_response, setup_logging, generate_s3_key, get_current_timestamp,
+    analyze_personality_profile, suggest_champion_matches,
+    predict_next_season, generate_rival_analysis
 )
 
 # Setup logging
@@ -379,6 +381,17 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 recommendations=recommendations
             )
             
+            # Generate new AI features
+            from shared.utils import (
+                analyze_personality_profile, suggest_champion_matches,
+                predict_next_season, generate_rival_analysis
+            )
+            
+            personality_profile = analyze_personality_profile(mock_stats)
+            champion_suggestions = suggest_champion_matches(mock_stats)
+            next_season_prediction = predict_next_season(mock_stats)
+            rival_analysis = generate_rival_analysis(mock_stats)
+            
             # Prepare response data with new analytics
             insight_data = {
                 "session_id": session_id,
@@ -390,6 +403,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 "highlight_matches": getattr(mock_stats, 'highlight_matches', []),
                 "champion_improvements": champion_improvements,
                 "behavioral_patterns": behavioral_insights,
+                "personality_profile": personality_profile,
+                "champion_suggestions": champion_suggestions,
+                "next_season_prediction": next_season_prediction,
+                "rival_analysis": rival_analysis,
                 "generated_at": get_current_timestamp(),
                 "statistics_summary": {
                     "summoner_name": mock_stats.summoner_name,
