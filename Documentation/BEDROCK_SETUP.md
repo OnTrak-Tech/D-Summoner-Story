@@ -55,9 +55,9 @@ Most Bedrock models require explicit access requests:
 2. Go to **Model access** in the left sidebar
 3. Click **Request model access**
 4. Select the required models:
-   - ✅ **Anthropic Claude 3 Sonnet**
-   - ✅ **Anthropic Claude 3 Haiku** (optional)
-   - ✅ **Amazon Titan Text Express** (optional)
+   -  **Anthropic Claude 3 Sonnet**
+   -  **Anthropic Claude 3 Haiku** (optional)
+   -  **Amazon Titan Text Express** (optional)
 5. Fill out the use case form:
    - **Use Case**: Gaming analytics and personalized content generation
    - **Description**: Generate year-in-review narratives for League of Legends players
@@ -167,7 +167,7 @@ def create_gaming_prompt(stats):
     return f"""
     Create an engaging, personalized League of Legends year-in-review narrative in the style of "Spotify Wrapped" for a player with these statistics:
 
-    📊 PLAYER STATISTICS:
+     PLAYER STATISTICS:
     • Total Games Played: {stats.get('total_games', 0)}
     • Overall Win Rate: {stats.get('win_rate', 0):.1f}%
     • Average KDA: {stats.get('avg_kda', 0):.2f}
@@ -177,7 +177,7 @@ def create_gaming_prompt(stats):
     • Peak Performance Month: {stats.get('best_month', 'Unknown')}
     • Improvement Trend: {stats.get('trend', 'Stable')}
 
-    🎯 REQUIREMENTS:
+     REQUIREMENTS:
     1. Write in an enthusiastic, celebratory tone like Spotify Wrapped
     2. Use League of Legends terminology and references
     3. Include specific statistics naturally in the narrative
@@ -187,7 +187,7 @@ def create_gaming_prompt(stats):
     7. Include emojis and gaming references
     8. End with an encouraging message for the next season
 
-    🎮 STYLE EXAMPLES:
+     STYLE EXAMPLES:
     - "You absolutely dominated the Rift this year!"
     - "Your {champion} gameplay was *chef's kiss* perfection"
     - "You climbed harder than a Yasuo main in ranked"
@@ -200,13 +200,13 @@ def generate_fallback_narrative(stats):
     """Generate a simple fallback narrative if Bedrock fails."""
     
     return f"""
-    🎮 Your League of Legends Year in Review! 🎮
+     Your League of Legends Year in Review! 
     
     What a year on the Rift! You played {stats.get('total_games', 0)} games with a {stats.get('win_rate', 0):.1f}% win rate. 
     
     Your go-to champion was {stats.get('top_champion', 'your favorite pick')}, and you really showed your skills with an average KDA of {stats.get('avg_kda', 0):.2f}.
     
-    Keep climbing, Summoner! Next season is going to be even better! 🚀
+    Keep climbing, Summoner! Next season is going to be even better! 
     """
 ```
 

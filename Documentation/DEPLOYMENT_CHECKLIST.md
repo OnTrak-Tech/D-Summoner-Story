@@ -4,7 +4,7 @@ Complete checklist for deploying the League of Legends Year in Review infrastruc
 
 ## Pre-Deployment Requirements
 
-### ✅ Prerequisites
+###  Prerequisites
 - [ ] AWS CLI installed and configured
 - [ ] Terraform >= 1.6.0 installed
 - [ ] Python 3.12 for Lambda packaging
@@ -12,13 +12,13 @@ Complete checklist for deploying the League of Legends Year in Review infrastruc
 - [ ] Git repository access
 - [ ] Riot Games Developer Account
 
-### ✅ AWS Account Setup
+###  AWS Account Setup
 - [ ] AWS account with appropriate permissions
 - [ ] IAM user with deployment permissions
 - [ ] AWS region selected (recommended: us-east-1)
 - [ ] Billing alerts configured (optional)
 
-### ✅ API Keys and Secrets
+###  API Keys and Secrets
 - [ ] Riot Games API key obtained from [developer.riotgames.com](https://developer.riotgames.com/)
 - [ ] API key tested with Riot API endpoints
 - [ ] Email address for monitoring alerts
@@ -138,7 +138,7 @@ curl -X POST "$API_ENDPOINT/api/v1/auth" \
 
 ## Verification Checklist
 
-### ✅ Infrastructure Components
+###  Infrastructure Components
 - [ ] S3 buckets created and accessible
 - [ ] DynamoDB tables created with TTL enabled
 - [ ] Lambda functions deployed and configured
@@ -148,27 +148,27 @@ curl -X POST "$API_ENDPOINT/api/v1/auth" \
 - [ ] CloudWatch dashboard accessible
 - [ ] SNS alerts configured
 
-### ✅ Security Configuration
+###  Security Configuration
 - [ ] S3 buckets have public access blocked
 - [ ] IAM roles follow least privilege principle
 - [ ] Secrets stored in AWS Secrets Manager
 - [ ] CloudFront enforces HTTPS
 - [ ] API Gateway has CORS configured
 
-### ✅ Monitoring Setup
+###  Monitoring Setup
 - [ ] CloudWatch logs collecting data
 - [ ] CloudWatch alarms configured
 - [ ] SNS topic has email subscription
 - [ ] Dashboard shows real-time metrics
 - [ ] Cost monitoring alerts active
 
-### ✅ Bedrock Integration
+###  Bedrock Integration
 - [ ] Bedrock service available in region
 - [ ] Claude 3 Sonnet model access granted
 - [ ] Lambda functions have Bedrock permissions
 - [ ] Test API call successful
 
-### ✅ Application Testing
+###  Application Testing
 - [ ] Frontend loads successfully
 - [ ] API endpoints return expected responses
 - [ ] Error handling works correctly

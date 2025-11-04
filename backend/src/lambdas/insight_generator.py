@@ -274,26 +274,89 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             # Clean up the encoded summoner name
             actual_summoner_name = actual_summoner_name.replace('Player_', '').replace('%20', ' ')
         
-        # Create ProcessedStats object from DynamoDB data
-        mock_stats = ProcessedStats(
+        # Create ProcessedStats object from DynamoDB data with real values
+        total_games = int(stats_data.get('total_games', 0))
+        win_rate = float(stats_data.get('win_rate', 0))
+        avg_kda = float(stats_data.get('avg_kda', 0))
+        
+        # Calculate derived stats
+        total_wins = int(total_games * win_rate / 100)
+        total_losses = total_games - total_wins
+        
+        # Estimate kills/deaths/assists from KDA and games
+        estimated_deaths_per_game = max(1, 8 - (avg_kda * 2))  # Higher KDA = fewer deaths
+        total_deaths = int(total_games * estimated_deaths_per_game)
+        total_kills_assists = int(total_deaths * avg_kda)
+        total_kills = int(total_kills_assists * 0.4)  # Assume 40% kills, 60% assists
+        total_assists = total_kills_assists - total_kills
+        
+        # Parse champion stats from DynamoDB
+        champion_stats_data = stats_data.get('champion_stats', [])
+        champion_stats_objects = []
+        
+        # Convert champion stats if available
+        if champion_stats_data:
+            from shared.models import ChampionStat
+            for champ_data in champion_stats_data[:5]:  # Top 5 champions
+                champ_stat = ChampionStat(
+                    champion_id=champ_data.get('champion_id', 0),
+                    champion_name=champ_data.get('champion_name', 'Unknown'),
+                    games_played=int(champ_data.get('games_played', 0)),
+                    wins=int(champ_data.get('wins', 0)),
+                    losses=int(champ_data.get('losses', 0)),
+                    win_rate=float(champ_data.get('win_rate', 0)),
+                    total_kills=int(champ_data.get('total_kills', 0)),
+                    total_deaths=int(champ_data.get('total_deaths', 0)),
+                    total_assists=int(champ_data.get('total_assists', 0)),
+                    avg_kda=float(champ_data.get('avg_kda', 0)),
+                    total_damage=int(champ_data.get('total_damage', 0)),
+                    total_gold=int(champ_data.get('total_gold', 0)),
+                    total_cs=int(champ_data.get('total_cs', 0))
+                )
+                champion_stats_objects.append(champ_stat)
+        
+        # Get most played and best performing champions
+        most_played_champion = champion_stats_objects[0] if champion_stats_objects else None
+        best_kda_champion = max(champion_stats_objects, key=lambda x: x.avg_kda) if champion_stats_objects else None
+        highest_winrate_champion = max(champion_stats_objects, key=lambda x: x.win_rate) if champion_stats_objects else None
+        
+        # Calculate improvement trend from monthly data if available
+        monthly_trends_data = stats_data.get('monthly_trends', [])
+        improvement_trend = 0.0
+        consistency_score = 75.0
+        
+        if len(monthly_trends_data) >= 2:
+            # Calculate trend from first to last month
+            first_month_kda = float(monthly_trends_data[0].get('avg_kda', avg_kda))
+            last_month_kda = float(monthly_trends_data[-1].get('avg_kda', avg_kda))
+            improvement_trend = (last_month_kda - first_month_kda) / max(1, len(monthly_trends_data))
+            
+            # Calculate consistency as inverse of KDA variance
+            kda_values = [float(month.get('avg_kda', avg_kda)) for month in monthly_trends_data]
+            if len(kda_values) > 1:
+                mean_kda = sum(kda_values) / len(kda_values)
+                variance = sum((kda - mean_kda) ** 2 for kda in kda_values) / len(kda_values)
+                consistency_score = max(0, min(100, 100 - (variance * 20)))
+        
+        real_stats = ProcessedStats(
             summoner_id=stats_data.get('PK', '').replace('PLAYER#', ''),
             summoner_name=actual_summoner_name,
             region=stats_data.get('region', 'unknown'),
-            total_games=int(stats_data.get('total_games', 0)),
-            total_wins=int(stats_data.get('total_games', 0) * stats_data.get('win_rate', 0) / 100),
-            total_losses=int(stats_data.get('total_games', 0) * (100 - stats_data.get('win_rate', 0)) / 100),
-            win_rate=float(stats_data.get('win_rate', 0)),
-            total_kills=0,
-            total_deaths=0,
-            total_assists=0,
-            avg_kda=float(stats_data.get('avg_kda', 0)),
-            champion_stats=[],
-            monthly_trends=[],
-            most_played_champion=None,
-            highest_winrate_champion=None,
-            best_kda_champion=None,
-            improvement_trend=0.15,
-            consistency_score=78.5
+            total_games=total_games,
+            total_wins=total_wins,
+            total_losses=total_losses,
+            win_rate=win_rate,
+            total_kills=total_kills,
+            total_deaths=total_deaths,
+            total_assists=total_assists,
+            avg_kda=avg_kda,
+            champion_stats=champion_stats_objects,
+            monthly_trends=[],  # Would need to parse monthly_trends_data
+            most_played_champion=most_played_champion,
+            highest_winrate_champion=highest_winrate_champion,
+            best_kda_champion=best_kda_champion,
+            improvement_trend=improvement_trend,
+            consistency_score=consistency_score
         )
         
         try:
@@ -302,7 +365,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             logger.info("Generating narrative with Bedrock")
             
             try:
-                narrative_prompt = create_narrative_prompt(mock_stats)
+                narrative_prompt = create_narrative_prompt(real_stats)
                 print(f"INSIGHT GENERATOR: Created narrative prompt (length: {len(narrative_prompt)})")
                 
                 narrative = bedrock_client.invoke_claude(narrative_prompt, max_tokens=500)
@@ -316,7 +379,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             logger.info("Generating highlights")
             
             try:
-                highlights_prompt = create_highlights_prompt(mock_stats)
+                highlights_prompt = create_highlights_prompt(real_stats)
                 highlights_response = bedrock_client.invoke_claude(highlights_prompt, max_tokens=300)
                 print(f"INSIGHT GENERATOR: Generated highlights response (length: {len(highlights_response)})")
             except Exception as e:
@@ -332,45 +395,42 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 highlights = [highlights_response]  # Use raw response as single highlight
             
             # Generate achievements
-            achievements = create_achievements_prompt(mock_stats)
+            achievements = create_achievements_prompt(real_stats)
             
-            # Create fun facts with new analytics
+            # Create fun facts with real data
             fun_facts = [
-                f"You played {mock_stats.total_games} games this year - that's like watching {mock_stats.total_games * 30 // 60} hours of League!",
-                f"Your {mock_stats.avg_kda} KDA means you're definitely not feeding... most of the time 😉",
-                f"With a {mock_stats.win_rate}% win rate, you're climbing faster than a Katarina combo!"
+                f"You played {real_stats.total_games} games this year - that's like watching {real_stats.total_games * 30 // 60} hours of League!",
+                f"Your {real_stats.avg_kda} KDA means you're definitely not feeding... most of the time 😉",
+                f"With a {real_stats.win_rate}% win rate, you're climbing faster than a Katarina combo!"
             ]
             
-            # Add highlight matches to fun facts
-            if hasattr(mock_stats, 'highlight_matches') and mock_stats.highlight_matches:
-                best_match = mock_stats.highlight_matches[0]
-                fun_facts.append(f"Your best game: {best_match['kills']}/{best_match['deaths']}/{best_match['assists']} on {best_match['champion']} - absolutely legendary!")
+            # Add champion-specific fun facts
+            if real_stats.most_played_champion:
+                fun_facts.append(f"You're practically married to {real_stats.most_played_champion.champion_name} with {real_stats.most_played_champion.games_played} games!")
             
-            # Add champion improvements
-            champion_improvements = []
-            if hasattr(mock_stats, 'champion_improvements') and mock_stats.champion_improvements:
-                for imp in mock_stats.champion_improvements:
-                    champion_improvements.append(f"Mastered {imp['champion']} with {imp['win_rate']}% win rate (+{imp['improvement']}% improvement)")
+            if real_stats.best_kda_champion and real_stats.best_kda_champion != real_stats.most_played_champion:
+                fun_facts.append(f"Your secret weapon: {real_stats.best_kda_champion.champion_name} with a {real_stats.best_kda_champion.avg_kda} KDA!")
             
-            # Add behavioral patterns
-            behavioral_insights = []
-            if hasattr(mock_stats, 'behavioral_patterns') and mock_stats.behavioral_patterns:
-                behavioral_insights = mock_stats.behavioral_patterns
-            
-            # Create recommendations
+            # Create recommendations based on real performance
             recommendations = []
-            if mock_stats.avg_kda < 2.0:
+            if real_stats.avg_kda < 2.0:
                 recommendations.append("Focus on positioning and map awareness to improve your KDA")
-            if mock_stats.win_rate < 55:
+            if real_stats.win_rate < 55:
                 recommendations.append("Consider reviewing your champion pool and focusing on your best performers")
-            if mock_stats.improvement_trend < 0:
+            if real_stats.improvement_trend < 0:
                 recommendations.append("Take breaks between games to avoid tilt and maintain performance")
+            if real_stats.consistency_score < 70:
+                recommendations.append("Work on maintaining consistent performance across all games")
             
             if not recommendations:
                 recommendations = [
                     "Keep up the great work and maintain your winning streak!",
                     "Consider trying new champions to expand your versatility"
                 ]
+            
+            # Placeholder for advanced analytics (would be calculated in data processing)
+            champion_improvements = []
+            behavioral_insights = []
             
             # Create generated insight object
             generated_insight = GeneratedInsight(
@@ -381,16 +441,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 recommendations=recommendations
             )
             
-            # Generate new AI features
+            # Generate new AI features using real data
             from shared.utils import (
                 analyze_personality_profile, suggest_champion_matches,
                 predict_next_season, generate_rival_analysis
             )
             
-            personality_profile = analyze_personality_profile(mock_stats)
-            champion_suggestions = suggest_champion_matches(mock_stats)
-            next_season_prediction = predict_next_season(mock_stats)
-            rival_analysis = generate_rival_analysis(mock_stats)
+            personality_profile = analyze_personality_profile(real_stats)
+            champion_suggestions = suggest_champion_matches(real_stats)
+            next_season_prediction = predict_next_season(real_stats)
+            rival_analysis = generate_rival_analysis(real_stats)
             
             # Prepare response data with new analytics
             insight_data = {
@@ -409,13 +469,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 "rival_analysis": rival_analysis,
                 "generated_at": get_current_timestamp(),
                 "statistics_summary": {
-                    "summoner_name": mock_stats.summoner_name,
-                    "region": mock_stats.region,
-                    "total_games": mock_stats.total_games,
-                    "win_rate": mock_stats.win_rate,
-                    "avg_kda": mock_stats.avg_kda,
-                    "improvement_trend": mock_stats.improvement_trend,
-                    "consistency_score": mock_stats.consistency_score
+                    "summoner_name": real_stats.summoner_name,
+                    "region": real_stats.region,
+                    "total_games": real_stats.total_games,
+                    "win_rate": real_stats.win_rate,
+                    "avg_kda": real_stats.avg_kda,
+                    "improvement_trend": real_stats.improvement_trend,
+                    "consistency_score": real_stats.consistency_score
                 }
             }
             

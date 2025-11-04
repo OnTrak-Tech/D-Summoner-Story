@@ -220,7 +220,7 @@ const App: React.FC = () => {
           {/* Footer */}
           <div className="text-center mt-16">
             <p className="text-gray-500 mb-4 text-lg">
-              Powered by Riot Games API • Built with ❤️ for the League community
+              Powered by Riot Games API • Built for the League of Legends community
             </p>
             <div className="flex justify-center gap-8 text-sm text-gray-400">
               <span className="flex items-center gap-2">

@@ -128,7 +128,6 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
       <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white rounded-t-2xl p-8 shadow-2xl">
         <div className="text-center">
           <div className="inline-block mb-3">
-            <span className="text-5xl">🎮</span>
           </div>
           <h1 className="text-4xl font-bold mb-3 tracking-tight">
             {recapData.summoner_name}
@@ -725,8 +724,8 @@ export const RecapViewer: React.FC<RecapViewerProps> = ({
                 onClick={onStartNew}
                 className="px-8 py-4 bg-white border-2 border-slate-300 text-slate-700 rounded-xl font-semibold hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
               >
-                <span className="text-lg">🔄</span>
-                <span>New Search</span>
+                <span className="text-lg">🔍</span>
+                <span>Search Summoner</span>
               </button>
             )}
           </div>
