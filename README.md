@@ -4,7 +4,7 @@ League of Legends Year in Review - A serverless application that analyzes player
 
 ## Architecture Overview
 
-![DevOps Engineer Banner](Riot-api.drawio.png)
+![DevOps Engineer Banner](Riot-Api.png)
 
 
 ### System Components
