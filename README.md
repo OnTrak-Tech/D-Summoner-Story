@@ -4,6 +4,9 @@ League of Legends Year in Review - A serverless application that analyzes player
 
 ## Architecture Overview
 
+![DevOps Engineer Banner](Riot-api.drawio.png)
+
+
 ### System Components
 - **Backend**: 5 Python Lambda functions handling data processing and AI generation
 - **Frontend**: React application with TypeScript, D3.js, and Chart.js
