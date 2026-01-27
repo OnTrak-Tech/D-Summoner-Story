@@ -158,35 +158,28 @@ const App: React.FC = () => {
 
     // Default state - show input form
     return (
-      <div className="min-h-screen relative flex items-center justify-center p-6">
+      <div className="min-h-screen relative p-6">
         <GamingBackground />
-        <div className="w-full max-w-6xl">
-          
-          {/* Main Header */}
-          <div className="text-center mb-12">
-            <div className="mb-8">
-              <h1 className="text-5xl md:text-7xl font-bold mb-4 leading-tight">
-                <span className="bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 bg-clip-text text-transparent drop-shadow-lg">
-                  D-Summoner-Story
-                </span>
-              </h1>
-              <div className="w-24 h-1 bg-gradient-to-r from-yellow-400 to-red-400 mx-auto rounded-full shadow-lg"></div>
-            </div>
-            <p className="text-2xl text-white mb-3 font-light drop-shadow-lg">
-              Your League of Legends Year in Review
-            </p>
-            <p className="text-lg text-gray-200 max-w-2xl mx-auto leading-relaxed drop-shadow-md">
-              Discover your gaming journey with beautiful insights and AI-powered storytelling
-            </p>
-          </div>
+        
+        {/* Header with App Name on Left */}
+        <div className="flex items-center justify-between mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold">
+            <span className="bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 bg-clip-text text-transparent drop-shadow-lg">
+              OnTrak AI Coach
+            </span>
+          </h1>
+        </div>
 
-          {/* Input Form */}
-          <div className="max-w-2xl mx-auto mb-16">
-            <SummonerInput
-              onSubmit={handleSubmit}
-              isLoading={isLoading}
-            />
-          </div>
+        <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
+          <div className="w-full max-w-6xl">
+            
+            {/* Input Form */}
+            <div className="max-w-2xl mx-auto mb-16">
+              <SummonerInput
+                onSubmit={handleSubmit}
+                isLoading={isLoading}
+              />
+            </div>
 
           {/* Features */}
           <div className="grid md:grid-cols-3 gap-8 mb-12">
@@ -242,6 +235,7 @@ const App: React.FC = () => {
                 Mobile-Friendly
               </span>
             </div>
+          </div>
           </div>
         </div>
       </div>
