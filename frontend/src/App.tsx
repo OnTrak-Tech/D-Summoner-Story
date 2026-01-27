@@ -8,6 +8,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { SummonerInput } from './components/SummonerInput';
 import { LoadingIndicator } from './components/LoadingIndicator';
 import { RecapViewer } from './components/RecapViewer';
+import { GamingBackground } from './components/GamingBackground';
 
 import { useRecapGeneration } from './hooks/useRecapGeneration';
 
@@ -157,23 +158,24 @@ const App: React.FC = () => {
 
     // Default state - show input form
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 flex items-center justify-center p-6">
+      <div className="min-h-screen relative flex items-center justify-center p-6">
+        <GamingBackground />
         <div className="w-full max-w-6xl">
           
           {/* Main Header */}
           <div className="text-center mb-12">
             <div className="mb-8">
               <h1 className="text-5xl md:text-7xl font-bold mb-4 leading-tight">
-                <span className="bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 bg-clip-text text-transparent drop-shadow-lg">
                   D-Summoner-Story
                 </span>
               </h1>
-              <div className="w-24 h-1 bg-gradient-to-r from-amber-400 to-rose-400 mx-auto rounded-full"></div>
+              <div className="w-24 h-1 bg-gradient-to-r from-yellow-400 to-red-400 mx-auto rounded-full shadow-lg"></div>
             </div>
-            <p className="text-2xl text-gray-700 mb-3 font-light">
+            <p className="text-2xl text-white mb-3 font-light drop-shadow-lg">
               Your League of Legends Year in Review
             </p>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg text-gray-200 max-w-2xl mx-auto leading-relaxed drop-shadow-md">
               Discover your gaming journey with beautiful insights and AI-powered storytelling
             </p>
           </div>
@@ -188,7 +190,7 @@ const App: React.FC = () => {
 
           {/* Features */}
           <div className="grid md:grid-cols-3 gap-8 mb-12">
-            <div className="group bg-white/60 backdrop-blur-sm rounded-3xl p-8 shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className="group bg-white/80 backdrop-blur-md rounded-3xl p-8 shadow-xl border border-white/30 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
               <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                 <span className="text-2xl">📊</span>
               </div>
@@ -197,7 +199,7 @@ const App: React.FC = () => {
                 Deep dive into your KDA, win rates, and champion mastery with beautiful visualizations
               </p>
             </div>
-            <div className="group bg-white/60 backdrop-blur-sm rounded-3xl p-8 shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className="group bg-white/80 backdrop-blur-md rounded-3xl p-8 shadow-xl border border-white/30 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
               <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-pink-100 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                 <span className="text-2xl">🤖</span>
               </div>
@@ -206,7 +208,7 @@ const App: React.FC = () => {
                 Get personalized narratives and meaningful stories about your gaming journey
               </p>
             </div>
-            <div className="group bg-white/60 backdrop-blur-sm rounded-3xl p-8 shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className="group bg-white/80 backdrop-blur-md rounded-3xl p-8 shadow-xl border border-white/30 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
               <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                 <span className="text-2xl">📈</span>
               </div>
@@ -219,10 +221,10 @@ const App: React.FC = () => {
 
           {/* Footer */}
           <div className="text-center mt-16">
-            <p className="text-gray-500 mb-4 text-lg">
+            <p className="text-gray-300 mb-4 text-lg drop-shadow-md">
               Powered by Riot Games API • Built for the League of Legends community
             </p>
-            <div className="flex justify-center gap-8 text-sm text-gray-400">
+            <div className="flex justify-center gap-8 text-sm text-gray-300">
               <span className="flex items-center gap-2">
                 <span className="w-2 h-2 bg-green-400 rounded-full"></span>
                 Secure
