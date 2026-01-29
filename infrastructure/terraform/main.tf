@@ -388,6 +388,47 @@ module "lambda_authorizer" {
   ]
 }
 
+# Platform Auth Handlers
+module "lambda_auth_riot" {
+  source        = "./modules/lambda_function"
+  function_name = "${local.name_prefix}-auth-riot"
+  handler       = "auth_riot.handler"
+  source_dir    = "${path.root}/../../backend/src/lambdas"
+  runtime       = "python3.12"
+  timeout       = 30
+  memory_size   = 256
+  layers        = [aws_lambda_layer_version.shared.arn]
+  environment = {
+    LOG_LEVEL          = "INFO"
+    SSM_PATH_PREFIX    = module.ssm_parameters.ssm_path_prefix
+    PLAYER_STATS_TABLE = module.ddb_player_stats.table_name
+  }
+  policy_arns = [
+    aws_iam_policy.lambda_ssm.arn,
+    aws_iam_policy.lambda_dynamodb.arn
+  ]
+}
+
+module "lambda_auth_steam" {
+  source        = "./modules/lambda_function"
+  function_name = "${local.name_prefix}-auth-steam"
+  handler       = "auth_steam.handler"
+  source_dir    = "${path.root}/../../backend/src/lambdas"
+  runtime       = "python3.12"
+  timeout       = 30
+  memory_size   = 256
+  layers        = [aws_lambda_layer_version.shared.arn]
+  environment = {
+    LOG_LEVEL          = "INFO"
+    SSM_PATH_PREFIX    = module.ssm_parameters.ssm_path_prefix
+    PLAYER_STATS_TABLE = module.ddb_player_stats.table_name
+  }
+  policy_arns = [
+    aws_iam_policy.lambda_ssm.arn,
+    aws_iam_policy.lambda_dynamodb.arn
+  ]
+}
+
 module "lambda_data_processor" {
   source        = "./modules/lambda_function"
   function_name = "${local.name_prefix}-data-processor"
@@ -503,10 +544,19 @@ module "http_api" {
   authorizer_lambda_arn        = module.lambda_authorizer.lambda_arn
   authorizer_lambda_invoke_arn = module.lambda_authorizer.lambda_invoke_arn
   routes = {
-    # Auth route - no Firebase auth required (user hasn't logged in yet)
+    # Legacy auth route - no Firebase auth required (user hasn't logged in yet)
     "POST /api/v1/auth" = {
       target_lambda_arn = module.lambda_auth.lambda_arn
       require_auth      = false
+    }
+    # Platform auth routes - require Firebase auth to link accounts
+    "POST /api/v1/auth/riot" = {
+      target_lambda_arn = module.lambda_auth_riot.lambda_arn
+      require_auth      = true
+    }
+    "POST /api/v1/auth/steam" = {
+      target_lambda_arn = module.lambda_auth_steam.lambda_arn
+      require_auth      = true
     }
     # All other routes require Firebase authentication
     "POST /api/v1/fetch" = {

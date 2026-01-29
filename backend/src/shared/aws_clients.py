@@ -302,3 +302,14 @@ def get_bucket_name(bucket_type: str) -> str:
     if not bucket_name:
         raise AWSClientError(f"{env_var} environment variable not set")
     return bucket_name
+
+
+# SSM client singleton
+_ssm_client = None
+
+def get_ssm_client():
+    """Get singleton SSM client for Parameter Store access"""
+    global _ssm_client
+    if _ssm_client is None:
+        _ssm_client = boto3.client('ssm')
+    return _ssm_client
