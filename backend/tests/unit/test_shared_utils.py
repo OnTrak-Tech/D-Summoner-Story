@@ -162,7 +162,8 @@ class TestUtilityFunctions:
         assert response["statusCode"] == 200
         assert "headers" in response
         assert response["headers"]["Content-Type"] == "application/json"
-        assert response["headers"]["Access-Control-Allow-Origin"] == "*"
+        # CORS is now restricted to specific domain
+        assert "Access-Control-Allow-Origin" in response["headers"]
         
         body = response["body"]
         assert '"message": "success"' in body

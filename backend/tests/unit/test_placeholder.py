@@ -10,7 +10,7 @@ def test_comprehensive_tests_exist():
     
     # Check that the main test files exist
     expected_tests = [
-        'test_auth_handler.py',
+        'test_auth_handler_simple.py',  # Renamed from test_auth_handler.py
         'test_shared_utils.py', 
         'test_aws_clients.py'
     ]

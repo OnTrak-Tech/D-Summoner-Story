@@ -17,6 +17,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from shared.models import RecapResponse, ChartConfig
 from shared.aws_clients import get_s3_client, get_dynamodb_client, get_bucket_name, get_table_name
 from shared.utils import format_lambda_response, setup_logging, get_current_timestamp
+from shared.errors import AppError, ErrorCode, handle_exception
+from shared.firebase_auth import extract_user_from_event
 
 # Setup logging
 setup_logging(os.environ.get('LOG_LEVEL', 'INFO'))
@@ -419,7 +421,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             except Exception as e:
                 print(f"Q&A error: {str(e)}")
                 logger.error(f"Q&A error: {str(e)}", exc_info=True)
-                return format_lambda_response(500, {"error": f"Failed to answer question: {str(e)}"})
+                error = AppError(ErrorCode.BEDROCK_ERROR, str(e), status_code=500)
+                error.log()
+                return format_lambda_response(500, error.to_response())
         
         if is_share_request:
             # Handle sharing functionality
@@ -488,8 +492,5 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         print(f"Unexpected error in recap server: {e}")
         logger.error(f"Unexpected error in recap server: {e}", exc_info=True)
         
-        return format_lambda_response(500, {
-            "error": "INTERNAL_ERROR",
-            "message": "An unexpected error occurred while serving the recap",
-            "details": str(e)
-        })
+        error = handle_exception(e)
+        return format_lambda_response(error.status_code, error.to_response())

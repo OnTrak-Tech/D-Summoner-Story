@@ -1,8 +1,16 @@
 from __future__ import annotations
 import json
+import os
+import sys
 from dataclasses import dataclass
 from typing import Any, Dict, Literal
 from uuid import uuid4
+
+# Add shared modules to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+from shared.utils import format_lambda_response
+from shared.errors import AppError, ErrorCode, handle_exception
 
 
 @dataclass
@@ -18,13 +26,14 @@ class AuthResponse:
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
-    """Lambda entrypoint: validates input and issues a session id.
-
-    This is a minimal placeholder aligned with the Design spec. Full authentication,
-    rate limiting, and credential retrieval from AWS Secrets Manager will be added
-    in later tasks.
+    """
+    Lambda entrypoint: validates input and issues a session id.
+    
+    Note: This is a PUBLIC route - no Firebase auth required.
+    Users call this before they're authenticated to validate game accounts.
     """
     try:
+        
         body = event.get("body")
         if isinstance(body, str):
             payload = json.loads(body or "{}")
@@ -37,27 +46,20 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         region = (payload.get("region") or "").strip()
 
         if not summoner_name or not region:
-            return {
-                "statusCode": 400,
-                "headers": {"Content-Type": "application/json"},
-                "body": json.dumps({
-                    "message": "summoner_name and region are required"
-                }),
-            }
+            error = AppError(
+                ErrorCode.MISSING_REQUIRED_FIELD,
+                "summoner_name and region are required"
+            )
+            error.log()
+            return format_lambda_response(400, error.to_response())
 
         session_id = str(uuid4())
-        resp = AuthResponse(session_id=session_id, status="valid")
-        return {
-            "statusCode": 200,
-            "headers": {"Content-Type": "application/json"},
-            "body": json.dumps({
-                "session_id": resp.session_id,
-                "status": resp.status,
-            }),
-        }
-    except Exception:
-        return {
-            "statusCode": 500,
-            "headers": {"Content-Type": "application/json"},
-            "body": json.dumps({"message": "Internal server error"}),
-        }
+        return format_lambda_response(200, {
+            "session_id": session_id,
+            "status": "valid",
+        })
+        
+    except Exception as e:
+        error = handle_exception(e)
+        return format_lambda_response(error.status_code, error.to_response())
+

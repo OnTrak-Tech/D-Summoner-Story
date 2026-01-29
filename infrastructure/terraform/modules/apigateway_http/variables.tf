@@ -28,9 +28,35 @@ variable "cors_allowed_methods" {
 }
 
 variable "routes" {
-  description = "Map of route_key ('METHOD /path') to target Lambda ARN"
+  description = "Map of route_key ('METHOD /path') to target Lambda ARN and auth config"
   type = map(object({
     target_lambda_arn = string
+    require_auth      = optional(bool, true)  # Default to requiring auth
   }))
   default = {}
 }
+
+variable "authorizer_lambda_arn" {
+  type        = string
+  description = "ARN of the Lambda function to use as authorizer"
+  default     = null
+}
+
+variable "authorizer_lambda_invoke_arn" {
+  type        = string
+  description = "Invoke ARN of the Lambda function to use as authorizer"
+  default     = null
+}
+
+variable "throttling_burst_limit" {
+  type        = number
+  description = "Maximum number of requests that can be processed in a burst"
+  default     = 100
+}
+
+variable "throttling_rate_limit" {
+  type        = number
+  description = "Maximum number of requests per second"
+  default     = 50
+}
+

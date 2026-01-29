@@ -4,7 +4,8 @@ Shared utility functions for data processing, statistics calculation, and common
 
 import json
 import time
-import hashlib
+import secrets
+import os
 from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import asdict
@@ -364,9 +365,9 @@ def create_player_stats_item(session_id: str, stats: ProcessedStats) -> PlayerSt
 
 
 def generate_job_id(session_id: str, summoner_name: str, region: str) -> str:
-    """Generate a unique job ID"""
-    data = f"{session_id}:{summoner_name}:{region}:{time.time()}"
-    return hashlib.md5(data.encode()).hexdigest()
+    """Generate a cryptographically secure unique job ID"""
+    # Using secrets.token_hex for unpredictable, secure IDs
+    return secrets.token_hex(16)
 
 
 def generate_s3_key(summoner_id: str, data_type: str, timestamp: Optional[int] = None) -> str:
@@ -390,10 +391,16 @@ class DecimalEncoder(json.JSONEncoder):
 def format_lambda_response(status_code: int, body: Any, 
                           headers: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
     """Format Lambda response with proper CORS headers"""
+    # Get allowed origin from environment, default to specific domain
+    allowed_origin = os.environ.get(
+        "ALLOWED_ORIGIN", 
+        "https://d89hvhr82jyuz.cloudfront.net"
+    )
+    
     default_headers = {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+        "Access-Control-Allow-Origin": allowed_origin,
+        "Access-Control-Allow-Headers": "Content-Type,X-API-Key,Authorization",
         "Access-Control-Allow-Methods": "GET,POST,OPTIONS"
     }
     
@@ -423,6 +430,40 @@ def validate_region(region: str) -> bool:
         'sg2', 'tw2', 'vn2'
     }
     return region in valid_regions
+
+
+def validate_api_key(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """
+    Validate API key from request headers.
+    Returns None if valid, or an error response dict if invalid.
+    """
+    from .errors import AppError, ErrorCode
+    
+    # Get expected API key from environment
+    expected_key = os.environ.get("CLIENT_API_KEY")
+    
+    # If no key configured, skip validation (dev mode)
+    if not expected_key:
+        logger.warning("CLIENT_API_KEY not set - API key validation disabled")
+        return None
+    
+    # Extract API key from headers (case-insensitive)
+    headers = event.get("headers", {}) or {}
+    # API Gateway may lowercase headers
+    api_key = headers.get("x-api-key") or headers.get("X-API-Key") or headers.get("X-Api-Key")
+    
+    if not api_key:
+        error = AppError(ErrorCode.MISSING_API_KEY, status_code=401)
+        error.log()
+        return format_lambda_response(401, error.to_response())
+    
+    # Constant-time comparison to prevent timing attacks
+    if not secrets.compare_digest(api_key, expected_key):
+        error = AppError(ErrorCode.INVALID_API_KEY, "Provided key does not match", status_code=401)
+        error.log()
+        return format_lambda_response(401, error.to_response())
+    
+    return None  # Valid
 
 
 def sanitize_summoner_name(summoner_name: str) -> str:

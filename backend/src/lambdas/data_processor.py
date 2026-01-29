@@ -22,6 +22,7 @@ from shared.utils import (
     format_lambda_response, setup_logging, process_match_statistics,
     create_player_stats_item, get_current_timestamp
 )
+from shared.errors import AppError, ErrorCode, handle_exception
 
 # Setup logging
 setup_logging(os.environ.get('LOG_LEVEL', 'INFO'))
@@ -239,11 +240,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         except Exception as e:
             print(f"DATA PROCESSOR: Invalid request format: {e}")
             logger.error(f"Invalid request format: {e}")
-            return format_lambda_response(400, {
-                "error": "INVALID_REQUEST",
-                "message": "Invalid request format",
-                "details": str(e)
-            })
+            error = AppError(ErrorCode.INVALID_REQUEST, str(e))
+            error.log()
+            return format_lambda_response(400, error.to_response())
         
         # Initialize AWS clients
         print("DATA PROCESSOR: Initializing AWS clients...")
@@ -454,14 +453,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             })
             
         except Exception as e:
-            # Update job with error
+            # Update job with error (sanitized message in DB)
             dynamodb_client.update_item(
                 processing_jobs_table,
                 {"PK": f"JOB#{request.job_id}"},
                 "SET #status = :status, #error_message = :error",
                 {
                     ":status": "failed",
-                    ":error": str(e)
+                    ":error": "Processing failed"  # Don't store full exception
                 },
                 {
                     "#status": "status",
@@ -489,7 +488,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     "SET #status = :status, #error_message = :error",
                     {
                         ":status": "failed",
-                        ":error": f"Processing error: {str(e)}"
+                        ":error": "Processing error"  # Sanitized
                     },
                     {
                         "#status": "status",
@@ -500,8 +499,5 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         except Exception as update_error:
             print(f"DATA PROCESSOR: Failed to update job status: {update_error}")
         
-        return format_lambda_response(500, {
-            "error": "INTERNAL_ERROR",
-            "message": "An unexpected error occurred during processing",
-            "details": str(e)
-        })
+        error = handle_exception(e)
+        return format_lambda_response(error.status_code, error.to_response())

@@ -18,10 +18,12 @@ from shared.models import FetchRequest, RiotSummoner
 from shared.riot_client import get_riot_client, RiotAPIError, SummonerNotFound
 from shared.aws_clients import get_s3_client, get_dynamodb_client, get_bucket_name, get_table_name
 from shared.utils import (
-    format_lambda_response, setup_logging, validate_region, 
+    format_lambda_response, setup_logging, validate_region,
     sanitize_summoner_name, generate_s3_key, create_processing_job,
     get_current_timestamp
 )
+from shared.errors import AppError, ErrorCode, handle_exception
+from shared.firebase_auth import extract_user_from_event
 
 # Setup logging
 setup_logging(os.environ.get('LOG_LEVEL', 'INFO'))
@@ -40,6 +42,15 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return handle_background_processing(event, context)
     
     try:
+        # Extract authenticated user from authorizer claims
+        # (For requests that pass through API Gateway with authorizer)
+        user = extract_user_from_event(event)
+        if user:
+            logger.info(f"Authenticated user: {user.get('uid')} ({user.get('email')})")
+        else:
+            # Fallback for direct Lambda invocation (dev/testing)
+            logger.warning("No user context found - may be direct invocation")
+        
         # Parse request body for HTTP requests
         body = event.get("body", "{}")
         if isinstance(body, str):
@@ -55,19 +66,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             print(f"DATA FETCHER: Valid request for {request.summoner_name} in {request.region}")
         except Exception as e:
             print(f"DATA FETCHER: Invalid request format: {e}")
-            return format_lambda_response(400, {
-                "error": "INVALID_REQUEST",
-                "message": "Invalid request format",
-                "details": str(e)
-            })
+            error = AppError(ErrorCode.INVALID_REQUEST, str(e))
+            error.log()
+            return format_lambda_response(400, error.to_response())
         
         # Validate region
         if not validate_region(request.region):
             print(f"DATA FETCHER: Invalid region: {request.region}")
-            return format_lambda_response(400, {
-                "error": "INVALID_REGION",
-                "message": f"Region '{request.region}' is not supported"
-            })
+            error = AppError(ErrorCode.INVALID_REGION, f"Region: {request.region}")
+            error.log()
+            return format_lambda_response(400, error.to_response())
         
         # Sanitize summoner name
         summoner_name = sanitize_summoner_name(request.summoner_name)
@@ -211,7 +219,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 "SET #status = :status, #error_message = :error",
                 {
                     ":status": "failed",
-                    ":error": str(e)
+                    ":error": "Riot API error"  # Don't store full exception
                 },
                 {
                     "#status": "status",
@@ -220,21 +228,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             )
             
             logger.error(f"Riot API error: {e}")
-            return format_lambda_response(503, {
-                "error": "RIOT_API_ERROR",
-                "message": "Failed to fetch data from Riot Games API",
-                "details": str(e)
-            })
+            error = AppError(ErrorCode.RIOT_API_ERROR, str(e), status_code=503)
+            error.log()
+            return format_lambda_response(503, error.to_response())
             
     except Exception as e:
         print(f"DATA FETCHER: Unexpected error: {e}")
         logger.error(f"Unexpected error in data fetcher: {e}", exc_info=True)
         
-        return format_lambda_response(500, {
-            "error": "INTERNAL_ERROR",
-            "message": "An unexpected error occurred",
-            "details": str(e)
-        })
+        error = handle_exception(e)
+        return format_lambda_response(error.status_code, error.to_response())
 
 
 def handle_background_processing(event: Dict[str, Any], context: Any) -> Dict[str, Any]:

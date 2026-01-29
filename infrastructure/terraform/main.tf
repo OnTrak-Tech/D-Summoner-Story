@@ -11,6 +11,10 @@ locals {
   })
 }
 
+# Data sources
+data "aws_region" "current" {}
+data "aws_caller_identity" "current" {}
+
 # S3 buckets
 module "s3_raw_data" {
   source                       = "./modules/s3_bucket"
@@ -77,23 +81,51 @@ module "bedrock_models" {
 }
 
 ###############################################
-# Secrets Manager
+# SSM Parameter Store (replaces Secrets Manager - FREE)
 ###############################################
 
-resource "aws_secretsmanager_secret" "riot_api_key" {
-  name        = "${local.name_prefix}-riot-api-key"
-  description = "Riot Games API key for League of Legends data access"
-  tags        = local.common_tags
-}
+module "ssm_parameters" {
+  source       = "./modules/ssm_parameters"
+  project_name = var.project_name
+  environment  = var.environment
+  common_tags  = local.common_tags
 
-resource "aws_secretsmanager_secret_version" "riot_api_key" {
-  secret_id     = aws_secretsmanager_secret.riot_api_key.id
-  secret_string = jsonencode({
-    api_key = "PLACEHOLDER_RIOT_API_KEY"
-  })
-  
-  lifecycle {
-    ignore_changes = [secret_string]
+  parameters = {
+    # Platform API Keys
+    "riot-api-key" = {
+      description = "Riot Games API key for League of Legends data access"
+      type        = "SecureString"
+      value       = "PLACEHOLDER_RIOT_API_KEY"
+    }
+    "steam-api-key" = {
+      description = "Steam Web API key"
+      type        = "SecureString"
+      value       = "PLACEHOLDER_STEAM_API_KEY"
+    }
+    "xbox-client-id" = {
+      description = "Xbox/Microsoft OAuth client ID"
+      type        = "SecureString"
+      value       = "PLACEHOLDER_XBOX_CLIENT_ID"
+    }
+    "xbox-client-secret" = {
+      description = "Xbox/Microsoft OAuth client secret"
+      type        = "SecureString"
+      value       = "PLACEHOLDER_XBOX_CLIENT_SECRET"
+    }
+
+    # AI Provider
+    "gemini-api-key" = {
+      description = "Google Gemini API key for AI insights"
+      type        = "SecureString"
+      value       = "PLACEHOLDER_GEMINI_API_KEY"
+    }
+
+    # Firebase (for token validation)
+    "firebase-project-id" = {
+      description = "Firebase project ID for auth validation"
+      type        = "String"
+      value       = "PLACEHOLDER_FIREBASE_PROJECT_ID"
+    }
   }
 }
 
@@ -157,10 +189,10 @@ resource "aws_iam_policy" "lambda_s3" {
   })
 }
 
-# Secrets Manager access policy
-resource "aws_iam_policy" "lambda_secrets" {
-  name        = "${local.name_prefix}-lambda-secrets"
-  description = "Secrets Manager access for Lambda functions"
+# SSM Parameter Store access policy
+resource "aws_iam_policy" "lambda_ssm" {
+  name        = "${local.name_prefix}-lambda-ssm"
+  description = "SSM Parameter Store access for Lambda functions"
   
   policy = jsonencode({
     Version = "2012-10-17"
@@ -168,10 +200,12 @@ resource "aws_iam_policy" "lambda_secrets" {
       {
         Effect = "Allow"
         Action = [
-          "secretsmanager:GetSecretValue"
+          "ssm:GetParameter",
+          "ssm:GetParameters",
+          "ssm:GetParametersByPath"
         ]
         Resource = [
-          aws_secretsmanager_secret.riot_api_key.arn
+          "arn:aws:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter/${var.project_name}/${var.environment}/*"
         ]
       }
     ]
@@ -286,14 +320,33 @@ module "lambda_data_fetcher" {
     LOG_LEVEL                = "INFO"
     RAW_DATA_BUCKET          = module.s3_raw_data.bucket_name
     PROCESSING_JOBS_TABLE    = module.ddb_processing_jobs.table_name
-    RIOT_API_SECRET_ARN      = aws_secretsmanager_secret.riot_api_key.arn
+    SSM_PATH_PREFIX          = module.ssm_parameters.ssm_path_prefix
     DATA_PROCESSOR_FUNCTION_NAME = module.lambda_data_processor.function_name
   }
   policy_arns = [
     aws_iam_policy.lambda_dynamodb.arn,
     aws_iam_policy.lambda_s3.arn,
-    aws_iam_policy.lambda_secrets.arn,
+    aws_iam_policy.lambda_ssm.arn,
     aws_iam_policy.lambda_invoke.arn
+  ]
+}
+
+# Lambda Authorizer for Firebase token validation
+module "lambda_authorizer" {
+  source        = "./modules/lambda_function"
+  function_name = "${local.name_prefix}-authorizer"
+  handler       = "authorizer.handler"
+  source_dir    = "${path.root}/../../backend/src/lambdas"
+  runtime       = "python3.12"
+  timeout       = 10
+  memory_size   = 256
+  layers        = [aws_lambda_layer_version.shared.arn]
+  environment   = {
+    LOG_LEVEL                = "INFO"
+    SSM_PATH_PREFIX          = module.ssm_parameters.ssm_path_prefix
+  }
+  policy_arns = [
+    aws_iam_policy.lambda_ssm.arn
   ]
 }
 
@@ -334,11 +387,12 @@ module "lambda_insight_generator" {
     PLAYER_STATS_TABLE       = module.ddb_player_stats.table_name
     PROCESSED_INSIGHTS_BUCKET = module.s3_processed_insights.bucket_name
     PROCESSING_JOBS_TABLE    = module.ddb_processing_jobs.table_name
+    SSM_PATH_PREFIX          = module.ssm_parameters.ssm_path_prefix
   }
   policy_arns = [
     aws_iam_policy.lambda_dynamodb.arn,
     aws_iam_policy.lambda_s3.arn,
-    aws_iam_policy.lambda_bedrock.arn
+    aws_iam_policy.lambda_ssm.arn
   ]
 }
 
@@ -355,43 +409,61 @@ module "lambda_recap_server" {
     LOG_LEVEL                = "INFO"
     PLAYER_STATS_TABLE       = module.ddb_player_stats.table_name
     PROCESSED_INSIGHTS_BUCKET = module.s3_processed_insights.bucket_name
+    SSM_PATH_PREFIX          = module.ssm_parameters.ssm_path_prefix
   }
   policy_arns = [
     aws_iam_policy.lambda_dynamodb.arn,
     aws_iam_policy.lambda_s3.arn,
-    aws_iam_policy.lambda_bedrock.arn
+    aws_iam_policy.lambda_ssm.arn
   ]
 }
 
 ###############################################
-# API Gateway HTTP (v2)
+# API Gateway with Lambda Authorizer
 ###############################################
 
 module "http_api" {
-  source                 = "./modules/apigateway_http"
-  api_name               = "${local.name_prefix}-api"
-  stage_name             = var.environment
-  cors_allowed_origins   = ["*"]
-  cors_allowed_headers   = ["*"]
-  cors_allowed_methods   = ["GET", "POST", "OPTIONS"]
+  source                       = "./modules/apigateway_http"
+  api_name                     = "${local.name_prefix}-api"
+  stage_name                   = var.environment
+  cors_allowed_origins         = ["https://${aws_cloudfront_distribution.website.domain_name}"]
+  cors_allowed_headers         = ["Content-Type", "Authorization"]
+  cors_allowed_methods         = ["GET", "POST", "OPTIONS"]
+  throttling_burst_limit       = 100
+  throttling_rate_limit        = 50
+  authorizer_lambda_arn        = module.lambda_authorizer.lambda_arn
+  authorizer_lambda_invoke_arn = module.lambda_authorizer.lambda_invoke_arn
   routes = {
+    # Auth route - no Firebase auth required (user hasn't logged in yet)
     "POST /api/v1/auth" = {
       target_lambda_arn = module.lambda_auth.lambda_arn
+      require_auth      = false
     }
+    # All other routes require Firebase authentication
     "POST /api/v1/fetch" = {
       target_lambda_arn = module.lambda_data_fetcher.lambda_arn
+      require_auth      = true
     }
     "GET /api/v1/status/{jobId}" = {
       target_lambda_arn = module.lambda_data_processor.lambda_arn
+      require_auth      = true
     }
     "GET /api/v1/recap/{sessionId}" = {
       target_lambda_arn = module.lambda_recap_server.lambda_arn
+      require_auth      = true
     }
     "POST /api/v1/share/{sessionId}" = {
       target_lambda_arn = module.lambda_recap_server.lambda_arn
+      require_auth      = true
     }
     "POST /api/v1/recap/{sessionId}/ask" = {
       target_lambda_arn = module.lambda_recap_server.lambda_arn
+      require_auth      = true
+    }
+    # Health check - no auth required
+    "GET /health" = {
+      target_lambda_arn = module.lambda_auth.lambda_arn
+      require_auth      = false
     }
   }
 }
