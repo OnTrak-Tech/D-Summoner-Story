@@ -60,3 +60,32 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
     }
   }
 }
+
+# S3 Event Notifications to Lambda
+resource "aws_s3_bucket_notification" "lambda" {
+  count  = length(var.lambda_notifications) > 0 ? 1 : 0
+  bucket = aws_s3_bucket.this.id
+
+  dynamic "lambda_function" {
+    for_each = var.lambda_notifications
+    content {
+      lambda_function_arn = lambda_function.value.lambda_function_arn
+      events              = lambda_function.value.events
+      filter_prefix       = lambda_function.value.filter_prefix
+      filter_suffix       = lambda_function.value.filter_suffix
+    }
+  }
+
+  depends_on = [aws_lambda_permission.s3]
+}
+
+# Lambda permission to allow S3 to invoke
+resource "aws_lambda_permission" "s3" {
+  for_each = { for idx, n in var.lambda_notifications : idx => n }
+
+  statement_id  = "AllowS3Invoke-${var.bucket_name}-${each.key}"
+  action        = "lambda:InvokeFunction"
+  function_name = each.value.lambda_function_arn
+  principal     = "s3.amazonaws.com"
+  source_arn    = aws_s3_bucket.this.arn
+}

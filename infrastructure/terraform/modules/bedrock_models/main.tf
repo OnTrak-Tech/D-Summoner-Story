@@ -14,8 +14,8 @@ data "aws_bedrock_foundation_model" "claude_sonnet" {
 # Local values for commonly used models
 locals {
   recommended_models = {
-    text_generation = "anthropic.claude-3-sonnet-20240229-v1:0"
-    text_embedding  = "amazon.titan-embed-text-v1"
+    text_generation  = "anthropic.claude-3-sonnet-20240229-v1:0"
+    text_embedding   = "amazon.titan-embed-text-v1"
     image_generation = "stability.stable-diffusion-xl-v1"
   }
 }

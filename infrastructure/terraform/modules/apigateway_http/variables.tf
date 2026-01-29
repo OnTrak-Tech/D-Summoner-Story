@@ -31,7 +31,7 @@ variable "routes" {
   description = "Map of route_key ('METHOD /path') to target Lambda ARN and auth config"
   type = map(object({
     target_lambda_arn = string
-    require_auth      = optional(bool, true)  # Default to requiring auth
+    require_auth      = optional(bool, true) # Default to requiring auth
   }))
   default = {}
 }

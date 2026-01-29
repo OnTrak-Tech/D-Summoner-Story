@@ -9,3 +9,8 @@ output "table_arn" {
 output "table_id" {
   value = aws_dynamodb_table.this.id
 }
+
+output "stream_arn" {
+  description = "ARN of the DynamoDB Stream (if enabled)"
+  value       = aws_dynamodb_table.this.stream_arn
+}

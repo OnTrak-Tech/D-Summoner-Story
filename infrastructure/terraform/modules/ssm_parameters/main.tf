@@ -19,6 +19,6 @@ resource "aws_ssm_parameter" "this" {
   })
 
   lifecycle {
-    ignore_changes = [value]  # Don't overwrite manually set values
+    ignore_changes = [value] # Don't overwrite manually set values
   }
 }

@@ -51,3 +51,16 @@ variable "tags" {
   description = "Tags to apply to the table"
   default     = {}
 }
+
+# Stream variables for event-driven architecture
+variable "stream_enabled" {
+  type        = bool
+  description = "Enable DynamoDB Streams"
+  default     = false
+}
+
+variable "stream_view_type" {
+  type        = string
+  description = "Stream view type: KEYS_ONLY, NEW_IMAGE, OLD_IMAGE, NEW_AND_OLD_IMAGES"
+  default     = "NEW_AND_OLD_IMAGES"
+}

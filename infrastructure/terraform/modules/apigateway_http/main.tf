@@ -44,7 +44,7 @@ resource "aws_apigatewayv2_authorizer" "lambda" {
   identity_sources                  = ["$request.header.Authorization"]
   name                              = "${var.api_name}-authorizer"
   authorizer_payload_format_version = "2.0"
-  authorizer_result_ttl_in_seconds  = 300  # Cache for 5 minutes
+  authorizer_result_ttl_in_seconds  = 300 # Cache for 5 minutes
   enable_simple_responses           = false
 }
 

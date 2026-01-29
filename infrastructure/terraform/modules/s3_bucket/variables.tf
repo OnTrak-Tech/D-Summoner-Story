@@ -26,3 +26,15 @@ variable "tags" {
   description = "Tags to apply to the S3 bucket"
   default     = {}
 }
+
+# Event notification variables
+variable "lambda_notifications" {
+  description = "List of Lambda function notifications for S3 events"
+  type = list(object({
+    lambda_function_arn = string
+    events              = list(string) # e.g., ["s3:ObjectCreated:*"]
+    filter_prefix       = optional(string)
+    filter_suffix       = optional(string)
+  }))
+  default = []
+}

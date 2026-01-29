@@ -11,9 +11,9 @@ variable "environment" {
 variable "parameters" {
   type = map(object({
     description = string
-    type        = optional(string, "SecureString")  # String, StringList, or SecureString
+    type        = optional(string, "SecureString") # String, StringList, or SecureString
     value       = string
-    tier        = optional(string, "Standard")      # Standard or Advanced
+    tier        = optional(string, "Standard") # Standard or Advanced
   }))
   description = "Map of parameter names to their configurations"
   default     = {}

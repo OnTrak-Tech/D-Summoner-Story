@@ -17,21 +17,31 @@ data "aws_caller_identity" "current" {}
 
 # S3 buckets
 module "s3_raw_data" {
-  source                       = "./modules/s3_bucket"
-  bucket_name                  = "${local.name_prefix}-raw-data"
-  versioning_enabled           = true
-  transition_to_ia_after_days  = 30
-  expire_after_days            = 365
-  tags                         = local.common_tags
+  source                      = "./modules/s3_bucket"
+  bucket_name                 = "${local.name_prefix}-raw-data"
+  versioning_enabled          = true
+  transition_to_ia_after_days = 30
+  expire_after_days           = 365
+  tags                        = local.common_tags
+
+  # Event-driven: trigger data_processor when new raw data is uploaded
+  lambda_notifications = [
+    {
+      lambda_function_arn = module.lambda_data_processor.lambda_arn
+      events              = ["s3:ObjectCreated:*"]
+      filter_prefix       = "raw/"
+      filter_suffix       = ".json"
+    }
+  ]
 }
 
 module "s3_processed_insights" {
-  source                       = "./modules/s3_bucket"
-  bucket_name                  = "${local.name_prefix}-processed-insights"
-  versioning_enabled           = true
-  transition_to_ia_after_days  = 30
-  expire_after_days            = 365
-  tags                         = local.common_tags
+  source                      = "./modules/s3_bucket"
+  bucket_name                 = "${local.name_prefix}-processed-insights"
+  versioning_enabled          = true
+  transition_to_ia_after_days = 30
+  expire_after_days           = 365
+  tags                        = local.common_tags
 }
 
 module "s3_static_website" {
@@ -43,33 +53,37 @@ module "s3_static_website" {
 
 # DynamoDB tables
 module "ddb_player_stats" {
-  source                    = "./modules/dynamodb_table"
-  table_name                = "${local.name_prefix}-player-stats"
-  hash_key                  = "PK"
-  range_key                 = "SK"
-  attributes                = [
-    { name = "PK",  type = "S" },
-    { name = "SK",  type = "S" }
+  source     = "./modules/dynamodb_table"
+  table_name = "${local.name_prefix}-player-stats"
+  hash_key   = "PK"
+  range_key  = "SK"
+  attributes = [
+    { name = "PK", type = "S" },
+    { name = "SK", type = "S" }
   ]
-  ttl_enabled               = true
-  ttl_attribute_name        = "ttl"
-  billing_mode              = "PAY_PER_REQUEST"
-  point_in_time_recovery    = true
-  tags                      = local.common_tags
+  ttl_enabled            = true
+  ttl_attribute_name     = "ttl"
+  billing_mode           = "PAY_PER_REQUEST"
+  point_in_time_recovery = true
+  tags                   = local.common_tags
 }
 
 module "ddb_processing_jobs" {
-  source                    = "./modules/dynamodb_table"
-  table_name                = "${local.name_prefix}-processing-jobs"
-  hash_key                  = "PK"
-  attributes                = [
-    { name = "PK",  type = "S" }
+  source     = "./modules/dynamodb_table"
+  table_name = "${local.name_prefix}-processing-jobs"
+  hash_key   = "PK"
+  attributes = [
+    { name = "PK", type = "S" }
   ]
-  ttl_enabled               = true
-  ttl_attribute_name        = "ttl"
-  billing_mode              = "PAY_PER_REQUEST"
-  point_in_time_recovery    = true
-  tags                      = local.common_tags
+  ttl_enabled            = true
+  ttl_attribute_name     = "ttl"
+  billing_mode           = "PAY_PER_REQUEST"
+  point_in_time_recovery = true
+  tags                   = local.common_tags
+
+  # Event-driven: stream changes to trigger insight_generator
+  stream_enabled   = true
+  stream_view_type = "NEW_AND_OLD_IMAGES"
 }
 
 ###############################################
@@ -137,7 +151,7 @@ module "ssm_parameters" {
 resource "aws_iam_policy" "lambda_dynamodb" {
   name        = "${local.name_prefix}-lambda-dynamodb"
   description = "DynamoDB access for Lambda functions"
-  
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -166,7 +180,7 @@ resource "aws_iam_policy" "lambda_dynamodb" {
 resource "aws_iam_policy" "lambda_s3" {
   name        = "${local.name_prefix}-lambda-s3"
   description = "S3 access for Lambda functions"
-  
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -193,7 +207,7 @@ resource "aws_iam_policy" "lambda_s3" {
 resource "aws_iam_policy" "lambda_ssm" {
   name        = "${local.name_prefix}-lambda-ssm"
   description = "SSM Parameter Store access for Lambda functions"
-  
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -216,7 +230,7 @@ resource "aws_iam_policy" "lambda_ssm" {
 resource "aws_iam_policy" "lambda_bedrock" {
   name        = "${local.name_prefix}-lambda-bedrock"
   description = "Amazon Bedrock access for Lambda functions"
-  
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -245,7 +259,7 @@ resource "aws_iam_policy" "lambda_bedrock" {
 resource "aws_iam_policy" "lambda_invoke" {
   name        = "${local.name_prefix}-lambda-invoke"
   description = "Lambda invoke access for Lambda functions"
-  
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -258,6 +272,30 @@ resource "aws_iam_policy" "lambda_invoke" {
           module.lambda_data_fetcher.lambda_arn,
           module.lambda_data_processor.lambda_arn,
           module.lambda_insight_generator.lambda_arn
+        ]
+      }
+    ]
+  })
+}
+
+# DynamoDB Streams access policy for event-driven Lambda
+resource "aws_iam_policy" "lambda_dynamodb_streams" {
+  name        = "${local.name_prefix}-lambda-dynamodb-streams"
+  description = "DynamoDB Streams access for event-driven Lambda functions"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetRecords",
+          "dynamodb:GetShardIterator",
+          "dynamodb:DescribeStream",
+          "dynamodb:ListStreams"
+        ]
+        Resource = [
+          module.ddb_processing_jobs.stream_arn
         ]
       }
     ]
@@ -279,7 +317,7 @@ resource "aws_lambda_layer_version" "shared" {
   filename         = data.archive_file.shared_layer.output_path
   layer_name       = "${local.name_prefix}-shared"
   source_code_hash = data.archive_file.shared_layer.output_base64sha256
-  
+
   compatible_runtimes = ["python3.12"]
   description         = "Shared modules for League of Legends recap Lambda functions"
 }
@@ -297,10 +335,10 @@ module "lambda_auth" {
   timeout       = 10
   memory_size   = 256
   layers        = [aws_lambda_layer_version.shared.arn]
-  environment   = {
-    LOG_LEVEL                = "INFO"
-    PLAYER_STATS_TABLE       = module.ddb_player_stats.table_name
-    PROCESSING_JOBS_TABLE    = module.ddb_processing_jobs.table_name
+  environment = {
+    LOG_LEVEL             = "INFO"
+    PLAYER_STATS_TABLE    = module.ddb_player_stats.table_name
+    PROCESSING_JOBS_TABLE = module.ddb_processing_jobs.table_name
   }
   policy_arns = [
     aws_iam_policy.lambda_dynamodb.arn
@@ -316,11 +354,11 @@ module "lambda_data_fetcher" {
   timeout       = 300
   memory_size   = 512
   layers        = [aws_lambda_layer_version.shared.arn]
-  environment   = {
-    LOG_LEVEL                = "INFO"
-    RAW_DATA_BUCKET          = module.s3_raw_data.bucket_name
-    PROCESSING_JOBS_TABLE    = module.ddb_processing_jobs.table_name
-    SSM_PATH_PREFIX          = module.ssm_parameters.ssm_path_prefix
+  environment = {
+    LOG_LEVEL                    = "INFO"
+    RAW_DATA_BUCKET              = module.s3_raw_data.bucket_name
+    PROCESSING_JOBS_TABLE        = module.ddb_processing_jobs.table_name
+    SSM_PATH_PREFIX              = module.ssm_parameters.ssm_path_prefix
     DATA_PROCESSOR_FUNCTION_NAME = module.lambda_data_processor.function_name
   }
   policy_arns = [
@@ -341,9 +379,9 @@ module "lambda_authorizer" {
   timeout       = 10
   memory_size   = 256
   layers        = [aws_lambda_layer_version.shared.arn]
-  environment   = {
-    LOG_LEVEL                = "INFO"
-    SSM_PATH_PREFIX          = module.ssm_parameters.ssm_path_prefix
+  environment = {
+    LOG_LEVEL       = "INFO"
+    SSM_PATH_PREFIX = module.ssm_parameters.ssm_path_prefix
   }
   policy_arns = [
     aws_iam_policy.lambda_ssm.arn
@@ -359,11 +397,11 @@ module "lambda_data_processor" {
   timeout       = 300
   memory_size   = 1024
   layers        = [aws_lambda_layer_version.shared.arn]
-  environment   = {
-    LOG_LEVEL                = "INFO"
-    RAW_DATA_BUCKET          = module.s3_raw_data.bucket_name
-    PLAYER_STATS_TABLE       = module.ddb_player_stats.table_name
-    PROCESSING_JOBS_TABLE    = module.ddb_processing_jobs.table_name
+  environment = {
+    LOG_LEVEL                       = "INFO"
+    RAW_DATA_BUCKET                 = module.s3_raw_data.bucket_name
+    PLAYER_STATS_TABLE              = module.ddb_player_stats.table_name
+    PROCESSING_JOBS_TABLE           = module.ddb_processing_jobs.table_name
     INSIGHT_GENERATOR_FUNCTION_NAME = module.lambda_insight_generator.function_name
   }
   policy_arns = [
@@ -382,18 +420,49 @@ module "lambda_insight_generator" {
   timeout       = 180
   memory_size   = 512
   layers        = [aws_lambda_layer_version.shared.arn]
-  environment   = {
-    LOG_LEVEL                = "INFO"
-    PLAYER_STATS_TABLE       = module.ddb_player_stats.table_name
+  environment = {
+    LOG_LEVEL                 = "INFO"
+    PLAYER_STATS_TABLE        = module.ddb_player_stats.table_name
     PROCESSED_INSIGHTS_BUCKET = module.s3_processed_insights.bucket_name
-    PROCESSING_JOBS_TABLE    = module.ddb_processing_jobs.table_name
-    SSM_PATH_PREFIX          = module.ssm_parameters.ssm_path_prefix
+    PROCESSING_JOBS_TABLE     = module.ddb_processing_jobs.table_name
+    SSM_PATH_PREFIX           = module.ssm_parameters.ssm_path_prefix
   }
   policy_arns = [
     aws_iam_policy.lambda_dynamodb.arn,
     aws_iam_policy.lambda_s3.arn,
-    aws_iam_policy.lambda_ssm.arn
+    aws_iam_policy.lambda_ssm.arn,
+    aws_iam_policy.lambda_dynamodb_streams.arn # Event-driven: stream trigger
   ]
+}
+
+# DynamoDB Stream -> Insight Generator Event Source Mapping
+resource "aws_lambda_event_source_mapping" "insight_generator_stream" {
+  event_source_arn                   = module.ddb_processing_jobs.stream_arn
+  function_name                      = module.lambda_insight_generator.lambda_arn
+  starting_position                  = "LATEST"
+  batch_size                         = 10
+  maximum_batching_window_in_seconds = 5
+
+  # Only trigger when status changes to "completed"
+  filter_criteria {
+    filter {
+      pattern = jsonencode({
+        eventName = ["MODIFY"]
+        dynamodb = {
+          NewImage = {
+            status = {
+              S = ["completed"]
+            }
+          }
+          OldImage = {
+            status = {
+              S = [{ "anything-but" = ["completed"] }]
+            }
+          }
+        }
+      })
+    }
+  }
 }
 
 module "lambda_recap_server" {
@@ -405,11 +474,11 @@ module "lambda_recap_server" {
   timeout       = 30
   memory_size   = 256
   layers        = [aws_lambda_layer_version.shared.arn]
-  environment   = {
-    LOG_LEVEL                = "INFO"
-    PLAYER_STATS_TABLE       = module.ddb_player_stats.table_name
+  environment = {
+    LOG_LEVEL                 = "INFO"
+    PLAYER_STATS_TABLE        = module.ddb_player_stats.table_name
     PROCESSED_INSIGHTS_BUCKET = module.s3_processed_insights.bucket_name
-    SSM_PATH_PREFIX          = module.ssm_parameters.ssm_path_prefix
+    SSM_PATH_PREFIX           = module.ssm_parameters.ssm_path_prefix
   }
   policy_arns = [
     aws_iam_policy.lambda_dynamodb.arn,
@@ -536,7 +605,7 @@ resource "aws_cloudfront_distribution" "website" {
   origin {
     domain_name = replace(module.http_api.api_endpoint, "https://", "")
     origin_id   = "API-${module.http_api.api_id}"
-    
+
     custom_origin_config {
       http_port              = 80
       https_port             = 443
@@ -697,11 +766,11 @@ resource "aws_cloudwatch_dashboard" "main" {
 # CloudWatch Alarms
 resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
   for_each = {
-    auth             = module.lambda_auth.function_name
-    data_fetcher     = module.lambda_data_fetcher.function_name
-    data_processor   = module.lambda_data_processor.function_name
+    auth              = module.lambda_auth.function_name
+    data_fetcher      = module.lambda_data_fetcher.function_name
+    data_processor    = module.lambda_data_processor.function_name
     insight_generator = module.lambda_insight_generator.function_name
-    recap_server     = module.lambda_recap_server.function_name
+    recap_server      = module.lambda_recap_server.function_name
   }
 
   alarm_name          = "${local.name_prefix}-lambda-errors-${each.key}"
@@ -724,11 +793,11 @@ resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
 
 resource "aws_cloudwatch_metric_alarm" "lambda_duration" {
   for_each = {
-    auth             = { name = module.lambda_auth.function_name, threshold = 8000 }
-    data_fetcher     = { name = module.lambda_data_fetcher.function_name, threshold = 240000 }
-    data_processor   = { name = module.lambda_data_processor.function_name, threshold = 240000 }
+    auth              = { name = module.lambda_auth.function_name, threshold = 8000 }
+    data_fetcher      = { name = module.lambda_data_fetcher.function_name, threshold = 240000 }
+    data_processor    = { name = module.lambda_data_processor.function_name, threshold = 240000 }
     insight_generator = { name = module.lambda_insight_generator.function_name, threshold = 150000 }
-    recap_server     = { name = module.lambda_recap_server.function_name, threshold = 25000 }
+    recap_server      = { name = module.lambda_recap_server.function_name, threshold = 25000 }
   }
 
   alarm_name          = "${local.name_prefix}-lambda-duration-${each.key}"

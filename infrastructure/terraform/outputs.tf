@@ -49,11 +49,11 @@ output "cloudwatch_dashboard_url" {
 # Lambda function ARNs for reference
 output "lambda_functions" {
   value = {
-    auth             = module.lambda_auth.lambda_arn
-    data_fetcher     = module.lambda_data_fetcher.lambda_arn
-    data_processor   = module.lambda_data_processor.lambda_arn
+    auth              = module.lambda_auth.lambda_arn
+    data_fetcher      = module.lambda_data_fetcher.lambda_arn
+    data_processor    = module.lambda_data_processor.lambda_arn
     insight_generator = module.lambda_insight_generator.lambda_arn
-    recap_server     = module.lambda_recap_server.lambda_arn
+    recap_server      = module.lambda_recap_server.lambda_arn
   }
 }
 
