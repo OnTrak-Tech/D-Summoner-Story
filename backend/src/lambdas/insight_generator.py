@@ -1,6 +1,6 @@
 """
 Insight Generator Lambda Function
-Uses Amazon Bedrock to generate AI-powered narrative recaps from player statistics.
+Uses Google Gemini API to generate AI-powered narrative recaps from player statistics.
 Creates engaging, personalized insights in the style of Spotify Wrapped.
 """
 
@@ -15,11 +15,12 @@ import logging
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from shared.models import ProcessedStats, GeneratedInsight, BedrockPrompt
+from shared.models import ProcessedStats, GeneratedInsight
 from shared.aws_clients import (
-    get_s3_client, get_dynamodb_client, get_bedrock_client,
+    get_s3_client, get_dynamodb_client,
     get_bucket_name, get_table_name, AWSClientError
 )
+from shared.gemini_client import get_gemini_client, GeminiAPIError
 from shared.utils import (
     format_lambda_response, setup_logging, generate_s3_key, get_current_timestamp,
     analyze_personality_profile, suggest_champion_matches,
@@ -206,10 +207,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             raise
         
         try:
-            bedrock_client = get_bedrock_client()
-            print("INSIGHT GENERATOR: Bedrock client initialized")
+            gemini_client = get_gemini_client()
+            print("INSIGHT GENERATOR: Gemini client initialized")
         except Exception as e:
-            print(f"INSIGHT GENERATOR: ERROR - Failed to initialize Bedrock client: {e}")
+            print(f"INSIGHT GENERATOR: ERROR - Failed to initialize Gemini client: {e}")
             raise
         
         try:
@@ -360,18 +361,18 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         )
         
         try:
-            # Generate narrative using Bedrock
-            print("INSIGHT GENERATOR: Generating narrative with Bedrock...")
-            logger.info("Generating narrative with Bedrock")
+            # Generate narrative using Gemini
+            print("INSIGHT GENERATOR: Generating narrative with Gemini...")
+            logger.info("Generating narrative with Gemini")
             
             try:
                 narrative_prompt = create_narrative_prompt(real_stats)
                 print(f"INSIGHT GENERATOR: Created narrative prompt (length: {len(narrative_prompt)})")
                 
-                narrative = bedrock_client.invoke_claude(narrative_prompt, max_tokens=500)
+                narrative = gemini_client.generate_content(narrative_prompt, max_tokens=500)
                 print(f"INSIGHT GENERATOR: Generated narrative (length: {len(narrative)})")
-            except Exception as e:
-                print(f"INSIGHT GENERATOR: ERROR - Bedrock narrative generation failed: {e}")
+            except GeminiAPIError as e:
+                print(f"INSIGHT GENERATOR: ERROR - Gemini narrative generation failed: {e}")
                 raise
             
             # Generate highlights
@@ -380,10 +381,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
             try:
                 highlights_prompt = create_highlights_prompt(real_stats)
-                highlights_response = bedrock_client.invoke_claude(highlights_prompt, max_tokens=300)
+                highlights_response = gemini_client.generate_content(highlights_prompt, max_tokens=300)
                 print(f"INSIGHT GENERATOR: Generated highlights response (length: {len(highlights_response)})")
-            except Exception as e:
-                print(f"INSIGHT GENERATOR: ERROR - Bedrock highlights generation failed: {e}")
+            except GeminiAPIError as e:
+                print(f"INSIGHT GENERATOR: ERROR - Gemini highlights generation failed: {e}")
                 raise
             
             # Parse highlights (expecting JSON array)

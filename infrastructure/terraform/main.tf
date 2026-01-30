@@ -87,6 +87,24 @@ module "ddb_processing_jobs" {
 }
 
 ###############################################
+# SQS Queue for Insight Generation
+###############################################
+
+module "sqs_insight_queue" {
+  source     = "./modules/sqs_queue"
+  queue_name = "${local.name_prefix}-insight-queue"
+
+  # Match Lambda timeout (180s) + buffer
+  visibility_timeout_seconds    = 300
+  message_retention_seconds     = 86400 # 1 day
+  max_receive_count             = 3
+  create_dlq                    = true
+  dlq_message_retention_seconds = 1209600 # 14 days
+
+  tags = local.common_tags
+}
+
+###############################################
 # Bedrock Models (Optional - for reference only)
 ###############################################
 
@@ -296,6 +314,40 @@ resource "aws_iam_policy" "lambda_dynamodb_streams" {
         ]
         Resource = [
           module.ddb_processing_jobs.stream_arn
+        ]
+      }
+    ]
+  })
+}
+
+# SQS access policy for Lambda functions
+resource "aws_iam_policy" "lambda_sqs" {
+  name        = "${local.name_prefix}-lambda-sqs"
+  description = "SQS access for Lambda functions - insight queue"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes",
+          "sqs:GetQueueUrl"
+        ]
+        Resource = [
+          module.sqs_insight_queue.queue_arn,
+          module.sqs_insight_queue.dlq_arn
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:SendMessage"
+        ]
+        Resource = [
+          module.sqs_insight_queue.queue_arn
         ]
       }
     ]
