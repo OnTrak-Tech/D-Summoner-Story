@@ -558,6 +558,64 @@ resource "aws_lambda_event_source_mapping" "insight_generator_stream" {
   }
 }
 
+###############################################
+# Dead Letter Queues for Async Lambdas
+###############################################
+
+module "dlq_data_processor" {
+  source     = "./modules/sqs_queue"
+  queue_name = "${local.name_prefix}-data-processor-dlq"
+
+  visibility_timeout_seconds    = 300
+  message_retention_seconds     = 1209600 # 14 days
+  create_dlq                    = false   # This IS the DLQ
+  dlq_message_retention_seconds = 0
+
+  tags = local.common_tags
+}
+
+module "dlq_insight_generator" {
+  source     = "./modules/sqs_queue"
+  queue_name = "${local.name_prefix}-insight-generator-dlq"
+
+  visibility_timeout_seconds    = 300
+  message_retention_seconds     = 1209600 # 14 days
+  create_dlq                    = false   # This IS the DLQ
+  dlq_message_retention_seconds = 0
+
+  tags = local.common_tags
+}
+
+###############################################
+# CloudWatch Alarms for Observability
+###############################################
+
+module "alarms_data_processor" {
+  source = "./modules/cloudwatch_alarms"
+
+  alarm_name_prefix     = local.name_prefix
+  lambda_function_name  = module.lambda_data_processor.function_name
+  error_threshold       = 1
+  throttle_threshold    = 1
+  duration_threshold_ms = 240000 # 4 minutes (80% of 5 min timeout)
+  dlq_queue_name        = module.dlq_data_processor.queue_name
+
+  tags = local.common_tags
+}
+
+module "alarms_insight_generator" {
+  source = "./modules/cloudwatch_alarms"
+
+  alarm_name_prefix     = local.name_prefix
+  lambda_function_name  = module.lambda_insight_generator.function_name
+  error_threshold       = 1
+  throttle_threshold    = 1
+  duration_threshold_ms = 144000 # 2.4 minutes (80% of 3 min timeout)
+  dlq_queue_name        = module.dlq_insight_generator.queue_name
+
+  tags = local.common_tags
+}
+
 module "lambda_recap_server" {
   source        = "./modules/lambda_function"
   function_name = "${local.name_prefix}-recap-server"
