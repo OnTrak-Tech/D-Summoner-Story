@@ -1,6 +1,6 @@
 """
 Unit tests for platform authentication handlers.
-Tests Auth_Riot and Auth_Steam Lambda functions.
+Tests Auth_Riot and Auth_Fortnite Lambda functions.
 """
 
 import pytest
@@ -103,17 +103,17 @@ class TestAuthRiot:
         assert "region" in body.get("message", "").lower()
 
 
-class TestAuthSteam:
-    """Test cases for Auth_Steam Lambda handler"""
+class TestAuthFortnite:
+    """Test cases for Auth_Fortnite Lambda handler"""
     
     def test_missing_firebase_auth_returns_401(self):
         """Test that unauthenticated requests return 401"""
-        from lambdas.auth_steam import handler
+        from lambdas.auth_fortnite import handler
         
         event = {
             "requestContext": {},  # No authorizer
             "body": json.dumps({
-                "steam_id": "76561198012345678"
+                "epic_username": "TestPlayer"
             })
         }
         
@@ -123,9 +123,9 @@ class TestAuthSteam:
         body = json.loads(result["body"])
         assert "Unauthorized" in body.get("error", "")
     
-    def test_missing_steam_id_and_vanity_url_returns_400(self):
-        """Test that missing both steam_id and vanity_url returns 400"""
-        from lambdas.auth_steam import handler
+    def test_missing_epic_username_returns_400(self):
+        """Test that missing epic_username returns 400"""
+        from lambdas.auth_fortnite import handler
         
         event = {
             "requestContext": {
@@ -134,38 +134,37 @@ class TestAuthSteam:
                     "email": "test@example.com"
                 }
             },
-            "body": json.dumps({})  # No steam_id or vanity_url
+            "body": json.dumps({})  # No epic_username
         }
         
         result = handler(event, {})
         
         assert result["statusCode"] == 400
         body = json.loads(result["body"])
-        assert "steam_id" in body.get("message", "").lower() or "vanity_url" in body.get("message", "").lower()
+        assert "epic_username" in body.get("message", "").lower()
     
-    def test_invalid_steam_id_format_returns_400(self):
-        """Test that invalid Steam ID format returns 400"""
-        from lambdas.auth_steam import handler
+    def test_invalid_account_type_returns_400(self):
+        """Test that invalid account_type returns 400"""
+        from lambdas.auth_fortnite import handler
         
-        # Mock SSM to avoid network call
-        with patch('lambdas.auth_steam._get_steam_api_key', return_value="fake_key"):
-            event = {
-                "requestContext": {
-                    "authorizer": {
-                        "uid": "user-123",
-                        "email": "test@example.com"
-                    }
-                },
-                "body": json.dumps({
-                    "steam_id": "invalid123"  # Not 17 digits
-                })
-            }
-            
-            result = handler(event, {})
-            
-            assert result["statusCode"] == 400
-            body = json.loads(result["body"])
-            assert "Steam ID" in body.get("message", "")
+        event = {
+            "requestContext": {
+                "authorizer": {
+                    "uid": "user-123",
+                    "email": "test@example.com"
+                }
+            },
+            "body": json.dumps({
+                "epic_username": "TestPlayer",
+                "account_type": "invalid_type"
+            })
+        }
+        
+        result = handler(event, {})
+        
+        assert result["statusCode"] == 400
+        body = json.loads(result["body"])
+        assert "account_type" in body.get("message", "").lower()
 
 
 if __name__ == "__main__":

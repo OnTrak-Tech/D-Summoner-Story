@@ -461,10 +461,10 @@ module "lambda_auth_riot" {
   ]
 }
 
-module "lambda_auth_steam" {
+module "lambda_auth_fortnite" {
   source        = "./modules/lambda_function"
-  function_name = "${local.name_prefix}-auth-steam"
-  handler       = "auth_steam.handler"
+  function_name = "${local.name_prefix}-auth-fortnite"
+  handler       = "auth_fortnite.handler"
   source_dir    = "${path.root}/../../backend/src/lambdas"
   runtime       = "python3.12"
   timeout       = 30
@@ -664,8 +664,8 @@ module "http_api" {
       target_lambda_arn = module.lambda_auth_riot.lambda_arn
       require_auth      = true
     }
-    "POST /api/v1/auth/steam" = {
-      target_lambda_arn = module.lambda_auth_steam.lambda_arn
+    "POST /api/v1/auth/fortnite" = {
+      target_lambda_arn = module.lambda_auth_fortnite.lambda_arn
       require_auth      = true
     }
     # All other routes require Firebase authentication
