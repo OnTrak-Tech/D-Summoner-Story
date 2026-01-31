@@ -43,7 +43,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   // Apply theme to document
   useEffect(() => {
     const root = window.document.documentElement;
-    
+
     if (isDark) {
       root.classList.add('dark');
     } else {
@@ -55,7 +55,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   useEffect(() => {
     if (theme === 'system') {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      
+
       const handleChange = () => {
         const root = window.document.documentElement;
         if (mediaQuery.matches) {
@@ -83,9 +83,5 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     isDark,
   };
 
-  return (
-    <ThemeContext.Provider value={value}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 };

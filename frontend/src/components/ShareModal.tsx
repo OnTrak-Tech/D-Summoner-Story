@@ -3,8 +3,8 @@
  * Supports Twitter, Facebook, Discord, and copy-to-clipboard functionality.
  */
 
-import React, { useState, useRef, useEffect } from "react";
-import { RecapData } from "../services/api";
+import React, { useState, useRef, useEffect } from 'react';
+import { RecapData } from '../services/api';
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -22,49 +22,40 @@ interface SharePlatform {
 
 const SHARE_PLATFORMS: SharePlatform[] = [
   {
-    name: "Twitter",
-    icon: "🐦",
-    color: "bg-blue-500 hover:bg-blue-600",
+    name: 'Twitter',
+    icon: '🐦',
+    color: 'bg-blue-500 hover:bg-blue-600',
     url: (text, url) =>
       `https://twitter.com/intent/tweet?text=${encodeURIComponent(
         text
       )}&url=${encodeURIComponent(url)}`,
   },
   {
-    name: "Facebook",
-    icon: "👤",
-    color: "bg-blue-700 hover:bg-blue-800",
+    name: 'Facebook',
+    icon: '👤',
+    color: 'bg-blue-700 hover:bg-blue-800',
     url: (text, url) =>
       `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
         url
       )}&quote=${encodeURIComponent(text)}`,
   },
   {
-    name: "Discord",
-    icon: "💬",
-    color: "bg-indigo-600 hover:bg-indigo-700",
+    name: 'Discord',
+    icon: '💬',
+    color: 'bg-indigo-600 hover:bg-indigo-700',
     url: (text, url) =>
-      `https://discord.com/channels/@me?message=${encodeURIComponent(
-        `${text} ${url}`
-      )}`,
+      `https://discord.com/channels/@me?message=${encodeURIComponent(`${text} ${url}`)}`,
   },
   {
-    name: "Reddit",
-    icon: "🔴",
-    color: "bg-orange-600 hover:bg-orange-700",
+    name: 'Reddit',
+    icon: '🔴',
+    color: 'bg-orange-600 hover:bg-orange-700',
     url: (text, url) =>
-      `https://reddit.com/submit?title=${encodeURIComponent(
-        text
-      )}&url=${encodeURIComponent(url)}`,
+      `https://reddit.com/submit?title=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
   },
 ];
 
-export const ShareModal: React.FC<ShareModalProps> = ({
-  isOpen,
-  onClose,
-  recapData,
-  shareUrl,
-}) => {
+export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, recapData, shareUrl }) => {
   const [copied, setCopied] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -87,27 +78,22 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     // Set canvas size
     canvas.width = 1200;
-    canvas.height = 630; 
+    canvas.height = 630;
 
     // Background gradient
-    const gradient = ctx.createLinearGradient(
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
-    gradient.addColorStop(0, "#3B82F6");
-    gradient.addColorStop(1, "#8B5CF6");
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    gradient.addColorStop(0, '#3B82F6');
+    gradient.addColorStop(1, '#8B5CF6');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Add pattern overlay
-    ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
     for (let i = 0; i < canvas.width; i += 40) {
       for (let j = 0; j < canvas.height; j += 40) {
         if ((i + j) % 80 === 0) {
@@ -117,37 +103,37 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     }
 
     // Title
-    ctx.fillStyle = "#FFFFFF";
-    ctx.font = "bold 48px Arial, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("League of Legends", canvas.width / 2, 100);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 48px Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('League of Legends', canvas.width / 2, 100);
 
-    ctx.font = "bold 36px Arial, sans-serif";
-    ctx.fillText("Year in Review", canvas.width / 2, 150);
+    ctx.font = 'bold 36px Arial, sans-serif';
+    ctx.fillText('Year in Review', canvas.width / 2, 150);
 
     // Summoner name
-    ctx.font = "bold 42px Arial, sans-serif";
-    ctx.fillStyle = "#FEF3C7";
+    ctx.font = 'bold 42px Arial, sans-serif';
+    ctx.fillStyle = '#FEF3C7';
     ctx.fillText(recapData.summoner_name, canvas.width / 2, 220);
 
     // Stats boxes
     const stats = [
       {
-        label: "Games",
+        label: 'Games',
         value: recapData.statistics.total_games.toString(),
         x: 200,
       },
       {
-        label: "Win Rate",
+        label: 'Win Rate',
         value: `${recapData.statistics.win_rate.toFixed(1)}%`,
         x: 400,
       },
       {
-        label: "Avg KDA",
+        label: 'Avg KDA',
         value: recapData.statistics.avg_kda.toFixed(2),
         x: 600,
       },
-      { label: "Region", value: recapData.region.toUpperCase(), x: 800 },
+      { label: 'Region', value: recapData.region.toUpperCase(), x: 800 },
     ];
 
     stats.forEach((stat, index) => {
@@ -155,29 +141,29 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       const y = 320;
 
       // Stat box background
-      ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
       ctx.fillRect(x, y, 200, 120);
 
       // Stat value
-      ctx.fillStyle = "#FFFFFF";
-      ctx.font = "bold 32px Arial, sans-serif";
-      ctx.textAlign = "center";
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 32px Arial, sans-serif';
+      ctx.textAlign = 'center';
       ctx.fillText(stat.value, x + 100, y + 50);
 
       // Stat label
-      ctx.font = "18px Arial, sans-serif";
-      ctx.fillStyle = "#E5E7EB";
+      ctx.font = '18px Arial, sans-serif';
+      ctx.fillStyle = '#E5E7EB';
       ctx.fillText(stat.label, x + 100, y + 80);
     });
 
     // Footer
-    ctx.fillStyle = "#E5E7EB";
-    ctx.font = "20px Arial, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("Generated by D-Summoner-Story", canvas.width / 2, 580);
+    ctx.fillStyle = '#E5E7EB';
+    ctx.font = '20px Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Generated by D-Summoner-Story', canvas.width / 2, 580);
 
     // Convert to data URL
-    const dataUrl = canvas.toDataURL("image/png");
+    const dataUrl = canvas.toDataURL('image/png');
     setPreviewImage(dataUrl);
   };
 
@@ -189,7 +175,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 
   const handleShare = (platform: SharePlatform) => {
     const url = platform.url(shareText, finalShareUrl);
-    window.open(url, "_blank", "width=600,height=400");
+    window.open(url, '_blank', 'width=600,height=400');
   };
 
   const handleCopyLink = async () => {
@@ -198,13 +184,13 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      console.error("Failed to copy link:", error);
+      console.error('Failed to copy link:', error);
       // Fallback for older browsers
-      const textArea = document.createElement("textarea");
+      const textArea = document.createElement('textarea');
       textArea.value = finalShareUrl;
       document.body.appendChild(textArea);
       textArea.select();
-      document.execCommand("copy");
+      document.execCommand('copy');
       document.body.removeChild(textArea);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -217,14 +203,14 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      console.error("Failed to copy text:", error);
+      console.error('Failed to copy text:', error);
     }
   };
 
   const handleDownloadImage = () => {
     if (!previewImage) return;
 
-    const link = document.createElement("a");
+    const link = document.createElement('a');
     link.download = `${recapData.summoner_name}-year-in-review.png`;
     link.href = previewImage;
     link.click();
@@ -239,7 +225,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
           url: finalShareUrl,
         });
       } catch (error) {
-        console.error("Native sharing failed:", error);
+        console.error('Native sharing failed:', error);
       }
     }
   };
@@ -251,13 +237,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-900">
-            📤 Share Your Year in Review
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-2xl"
-          >
+          <h2 className="text-2xl font-bold text-gray-900">📤 Share Your Year in Review</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl">
             ×
           </button>
         </div>
@@ -266,9 +247,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
           {/* Preview Image */}
           {previewImage && (
             <div className="text-center">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                🖼️ Share Preview
-              </h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">🖼️ Share Preview</h3>
               <img
                 src={previewImage}
                 alt="Share preview"
@@ -285,9 +264,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 
           {/* Share Text */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">
-              📝 Share Text
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">📝 Share Text</h3>
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <p className="text-gray-800 mb-3">{shareText}</p>
               <div className="flex gap-2">
@@ -295,11 +272,11 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                   onClick={handleCopyText}
                   className={`px-3 py-1 rounded text-sm transition-colors ${
                     copied
-                      ? "bg-green-100 text-green-800"
-                      : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
                   }`}
                 >
-                  {copied ? "✅ Copied!" : "📋 Copy Text"}
+                  {copied ? '✅ Copied!' : '📋 Copy Text'}
                 </button>
               </div>
             </div>
@@ -307,9 +284,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 
           {/* Share Platforms */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">
-              🌐 Share On
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">🌐 Share On</h3>
             <div className="grid grid-cols-2 gap-3">
               {SHARE_PLATFORMS.map((platform) => (
                 <button
@@ -339,9 +314,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 
           {/* Copy Link */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">
-              🔗 Direct Link
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">🔗 Direct Link</h3>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -352,25 +325,19 @@ export const ShareModal: React.FC<ShareModalProps> = ({
               <button
                 onClick={handleCopyLink}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  copied
-                    ? "bg-green-500 text-white"
-                    : "bg-blue-500 text-white hover:bg-blue-600"
+                  copied ? 'bg-green-500 text-white' : 'bg-blue-500 text-white hover:bg-blue-600'
                 }`}
               >
-                {copied ? "✅" : "📋"}
+                {copied ? '✅' : '📋'}
               </button>
             </div>
           </div>
 
           {/* Tips */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="font-semibold text-blue-900 mb-2">
-              💡 Sharing Tips
-            </h4>
+            <h4 className="font-semibold text-blue-900 mb-2">💡 Sharing Tips</h4>
             <ul className="text-sm text-blue-800 space-y-1">
-              <li>
-                • Download the image to share on Instagram or other platforms
-              </li>
+              <li>• Download the image to share on Instagram or other platforms</li>
               <li>• Use the copy text button to customize your message</li>
               <li>• Share your achievements with your League friends!</li>
             </ul>
@@ -378,12 +345,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
         </div>
 
         {/* Hidden canvas for image generation */}
-        <canvas
-          ref={canvasRef}
-          style={{ display: "none" }}
-          width={1200}
-          height={630}
-        />
+        <canvas ref={canvasRef} style={{ display: 'none' }} width={1200} height={630} />
       </div>
     </div>
   );

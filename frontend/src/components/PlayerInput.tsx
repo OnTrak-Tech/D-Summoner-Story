@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Platform } from '../config/platforms';
+import { PlayerInputSchema } from '../utils/validation';
 
 interface PlayerInputProps {
   platform: Platform;
   onSubmit: (data: { platform: string; playerId: string; region?: string }) => void;
   isLoading?: boolean;
+  onBack?: () => void;
 }
 
 export const PlayerInput: React.FC<PlayerInputProps> = ({
   platform,
   onSubmit,
-  isLoading = false
+  isLoading = false,
+  onBack,
 }) => {
   const [playerId, setPlayerId] = useState('');
   const [region, setRegion] = useState(platform.regions?.[0]?.id || '');
@@ -30,14 +33,19 @@ export const PlayerInput: React.FC<PlayerInputProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!playerId.trim()) {
-      setError(`${platform.inputConfig.label} is required`);
-      return;
-    }
 
-    if (!validateInput(playerId.trim())) {
-      setError(platform.inputConfig.errorMessage);
+    const payload = {
+      platform: platform.id as any, // Cast to any to let Zod handle the enum validation
+      playerId: playerId.trim(),
+      region: platform.regions ? region : undefined,
+    };
+
+    const result = PlayerInputSchema.safeParse(payload);
+
+    if (!result.success) {
+      // Prioritize specific field errors
+      const fieldError = result.error.issues[0];
+      setError(fieldError.message);
       return;
     }
 
@@ -45,35 +53,41 @@ export const PlayerInput: React.FC<PlayerInputProps> = ({
     onSubmit({
       platform: platform.id,
       playerId: playerId.trim(),
-      ...(platform.regions && { region })
+      ...(platform.regions && { region }),
     });
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      <div className="bg-gray-900/60 backdrop-blur-xl border border-gray-800 rounded-3xl p-10 shadow-2xl">
+    <div className="w-full max-w-2xl mx-auto px-4">
+      <div className="bg-brand-secondary/80 backdrop-blur-xl border border-brand-vibrant/20 rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 relative">
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="absolute top-6 left-6 text-slate-400 hover:text-white transition-colors"
+            title="Go Back"
+          >
+            ← Back
+          </button>
+        )}
         {/* Platform Header */}
-        <div className="text-center mb-10">
-          <div className={`inline-flex items-center justify-center w-20 h-20 rounded-2xl mb-6 bg-gradient-to-br ${
-            platform.id === 'riot' ? 'from-blue-500 to-purple-500' :
-            platform.id === 'steam' ? 'from-gray-500 to-slate-500' :
-            platform.id === 'xbox' ? 'from-green-500 to-emerald-500' :
-            'from-blue-500 to-purple-500'
-          }`}>
-            <span className="text-4xl">{platform.icon}</span>
+        <div className="text-center mb-6 sm:mb-8">
+          <div
+            className={`inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br ${platform.color.secondary} mb-3 sm:mb-4`}
+          >
+            <span className="text-xl sm:text-2xl">{platform.icon}</span>
           </div>
-          <h2 className="text-3xl font-black text-white mb-3">
+          <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">
             {platform.displayName}
           </h2>
-          <p className="text-gray-400 text-lg">
-            Enter your {platform.terminology.player.toLowerCase()} details to begin analysis
+          <p className="text-slate-400 text-sm sm:text-base">
+            Enter your {platform.terminology.player.toLowerCase()} details to get started
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* Player ID Input */}
           <div>
-            <label htmlFor="playerId" className="block text-sm font-bold text-gray-300 mb-3 uppercase tracking-wide">
+            <label htmlFor="playerId" className="block text-sm font-medium text-white mb-2">
               {platform.inputConfig.label}
             </label>
             <input
@@ -86,46 +100,43 @@ export const PlayerInput: React.FC<PlayerInputProps> = ({
               }}
               placeholder={platform.inputConfig.placeholder}
               className={`
-                w-full px-6 py-4 rounded-xl border-2 transition-all duration-300 text-lg font-medium
-                bg-gray-800/50 backdrop-blur-sm text-white placeholder-gray-500
-                focus:outline-none focus:ring-4 focus:ring-opacity-50
-                ${error 
-                  ? 'border-red-500 focus:border-red-400 focus:ring-red-500' 
-                  : 'border-gray-700 focus:border-cyan-400 focus:ring-cyan-400'
+                w-full px-4 py-3 rounded-xl border-2 transition-all duration-200
+                focus:outline-none focus:ring-4 focus:ring-opacity-20
+                ${
+                  error
+                    ? 'border-red-400/50 focus:border-red-500 focus:ring-red-500 bg-red-500/5'
+                    : 'border-brand-vibrant/30 focus:border-brand-vibrant focus:ring-brand-vibrant bg-brand-secondary/50'
                 }
+                backdrop-blur-sm text-white placeholder-slate-500
               `}
               disabled={isLoading}
             />
-            <p className="mt-3 text-sm text-gray-500">
+            <p className="mt-2 text-xs sm:text-sm text-slate-400">
               {platform.inputConfig.helpText}
             </p>
             {error && (
-              <div className="mt-3 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-                <p className="text-sm text-red-400 flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  {error}
-                </p>
-              </div>
+              <p className="mt-2 text-sm text-red-400 flex items-center gap-2">
+                <span>⚠️</span>
+                {error}
+              </p>
             )}
           </div>
 
           {/* Region Selector (if platform has regions) */}
           {platform.regions && (
             <div>
-              <label htmlFor="region" className="block text-sm font-bold text-gray-300 mb-3 uppercase tracking-wide">
+              <label htmlFor="region" className="block text-sm font-medium text-white mb-2">
                 Region
               </label>
               <select
                 id="region"
                 value={region}
                 onChange={(e) => setRegion(e.target.value)}
-                className="w-full px-6 py-4 rounded-xl border-2 border-gray-700 focus:border-cyan-400 focus:outline-none focus:ring-4 focus:ring-cyan-400 focus:ring-opacity-50 bg-gray-800/50 backdrop-blur-sm text-white text-lg font-medium transition-all duration-300"
+                className="w-full px-4 py-3 rounded-xl border-2 border-brand-vibrant/30 focus:border-brand-vibrant focus:outline-none focus:ring-4 focus:ring-brand-vibrant focus:ring-opacity-20 bg-brand-secondary/50 backdrop-blur-sm transition-all duration-200 text-white"
                 disabled={isLoading}
               >
                 {platform.regions.map((r) => (
-                  <option key={r.id} value={r.id} className="bg-gray-800">
+                  <option key={r.id} value={r.id} className="bg-brand-secondary text-white">
                     {r.name}
                   </option>
                 ))}
@@ -138,68 +149,59 @@ export const PlayerInput: React.FC<PlayerInputProps> = ({
             type="submit"
             disabled={isLoading || !playerId.trim()}
             className={`
-              w-full py-5 px-8 rounded-2xl font-bold text-lg transition-all duration-300 transform
-              ${isLoading || !playerId.trim()
-                ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                : `bg-gradient-to-r ${
-                    platform.id === 'riot' ? 'from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600' :
-                    platform.id === 'steam' ? 'from-gray-600 to-slate-600 hover:from-gray-700 hover:to-slate-700' :
-                    platform.id === 'xbox' ? 'from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600' :
-                    'from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
-                  } text-white hover:scale-105 hover:shadow-2xl active:scale-95`
+              w-full py-3 sm:py-4 px-6 rounded-xl sm:rounded-2xl font-semibold text-white transition-all duration-300
+              ${
+                isLoading || !playerId.trim()
+                  ? 'bg-slate-500/20 cursor-not-allowed text-slate-500'
+                  : `bg-gradient-to-r ${platform.color.primary} hover:shadow-xl hover:scale-105 active:scale-95`
               }
+              shadow-lg text-sm sm:text-base
             `}
           >
             {isLoading ? (
               <div className="flex items-center justify-center gap-3">
-                <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Analyzing Gaming Data...
+                <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Analyzing Your Gaming Data...
               </div>
             ) : (
-              `Generate ${platform.name} Wrapped`
+              `Generate My ${platform.name} Year in Review`
             )}
           </button>
         </form>
 
         {/* Platform-specific tips */}
-        <div className="mt-8 p-6 bg-gray-800/30 rounded-2xl border border-gray-700/50">
-          <h4 className="text-sm font-bold text-gray-300 mb-4 flex items-center gap-2 uppercase tracking-wide">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-            Pro Tips
+        <div className="mt-4 sm:mt-6 p-4 bg-brand-secondary/30 rounded-xl border border-brand-vibrant/10">
+          <h4 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
+            <span>💡</span>
+            Tips for {platform.name}
           </h4>
-          <ul className="text-sm text-gray-400 space-y-2">
+          <ul className="text-xs sm:text-sm text-slate-400 space-y-1">
             {platform.id === 'riot' && (
               <>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-400 mt-1">•</span>
-                  Make sure your summoner name is spelled correctly
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-400 mt-1">•</span>
-                  We analyze your last 100 ranked and normal games
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-400 mt-1">•</span>
-                  Processing takes about 30-60 seconds
-                </li>
+                <li>• Make sure your summoner name is spelled correctly</li>
+                <li>• We analyze your last 100 ranked and normal games</li>
+                <li>• Processing takes about 30-60 seconds</li>
               </>
             )}
             {platform.id === 'steam' && (
               <>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-400 mt-1">•</span>
-                  Your Steam profile must be public
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-400 mt-1">•</span>
-                  We analyze your game library and achievements
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-400 mt-1">•</span>
-                  Custom URLs work too (e.g., /id/yourname)
-                </li>
+                <li>• Your Steam profile must be public</li>
+                <li>• We analyze your game library and achievements</li>
+                <li>• Custom URLs work too (e.g., /id/yourname)</li>
+              </>
+            )}
+            {platform.id === 'xbox' && (
+              <>
+                <li>• Your Xbox profile must be public</li>
+                <li>• We analyze your recent gaming activity</li>
+                <li>• Gamertag is case-insensitive</li>
+              </>
+            )}
+            {platform.id === 'psn' && (
+              <>
+                <li>• Your PSN profile must be public</li>
+                <li>• We analyze your trophy data and playtime</li>
+                <li>• Online ID is case-sensitive</li>
               </>
             )}
           </ul>

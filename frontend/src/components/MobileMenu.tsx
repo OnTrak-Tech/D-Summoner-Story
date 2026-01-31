@@ -15,7 +15,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ onRecentSearchSelect }) 
   const [isOpen, setIsOpen] = useState(false);
   const { storedValue: recentSearches } = useRecentSearches();
 
-  const handleRecentSearchClick = (search: typeof recentSearches[0]) => {
+  const handleRecentSearchClick = (search: (typeof recentSearches)[0]) => {
     if (onRecentSearchSelect) {
       onRecentSearchSelect(search.summonerName, search.region);
     }
@@ -30,8 +30,18 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ onRecentSearchSelect }) 
         className="md:hidden fixed top-4 right-4 z-40 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
         aria-label="Open menu"
       >
-        <svg className="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        <svg
+          className="w-6 h-6 text-gray-600 dark:text-gray-300"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4 6h16M4 12h16M4 18h16"
+          />
         </svg>
       </button>
 
@@ -49,15 +59,18 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ onRecentSearchSelect }) 
             <div className="p-6">
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                  Menu
-                </h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Menu</h2>
                 <button
                   onClick={() => setIsOpen(false)}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
@@ -102,9 +115,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ onRecentSearchSelect }) 
 
               {/* App Info */}
               <div className="mb-6">
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  About
-                </h3>
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">About</h3>
                 <div className="space-y-3 text-sm text-gray-600 dark:text-gray-400">
                   <div className="flex items-center gap-2">
                     <span>🎮</span>
@@ -138,9 +149,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ onRecentSearchSelect }) 
                     <span>🔗</span>
                     <span className="font-medium">Riot Games API</span>
                   </div>
-                  <div className="text-xs mt-1">
-                    Learn more about the data source
-                  </div>
+                  <div className="text-xs mt-1">Learn more about the data source</div>
                 </button>
 
                 <button
@@ -160,9 +169,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ onRecentSearchSelect }) 
                     <span>📤</span>
                     <span className="font-medium">Share App</span>
                   </div>
-                  <div className="text-xs mt-1">
-                    Tell your friends about this tool
-                  </div>
+                  <div className="text-xs mt-1">Tell your friends about this tool</div>
                 </button>
               </div>
 

@@ -8,7 +8,11 @@ export default {
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
         'slide-up': 'slideUp 0.3s ease-out',
-        'bounce-slow': 'bounce 2s infinite',
+        'float': 'float 6s ease-in-out infinite', 
+      },
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        display: ['Rajdhani', 'sans-serif']
       },
       keyframes: {
         fadeIn: {
@@ -19,13 +23,18 @@ export default {
           '0%': { transform: 'translateY(10px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
+        float: { 
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-20px)' },
+        }
       },
       colors: {
-        primary: {
-          50: '#eff6ff',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
+        brand: {
+          vibrant: '#F97316', // High-vis Orange
+          deep: '#EA580C',    // Deep Orange
+          dark: '#0F172A',    // Rich Slate (Background)
+          secondary: '#1E293B', // Lighter Slate (Cards)
+          accent: '#38BDF8',  // Sky Blue
         },
       },
     },

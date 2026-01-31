@@ -14,6 +14,12 @@ interface UseLocalStorageReturn<T> {
   isLoading: boolean;
 }
 
+// Helper interface for TTL storage
+interface StorageItem<T> {
+  data: T;
+  timestamp: number;
+}
+
 export function useLocalStorage<T>(
   key: string,
   initialValue: T,
@@ -35,21 +41,29 @@ export function useLocalStorage<T>(
       const item = window.localStorage.getItem(key);
       if (item) {
         const parsed = deserialize(item);
-        
+
         // Check TTL if provided
-        if (options?.ttl && parsed && typeof parsed === 'object' && 'timestamp' in parsed) {
-          const now = Date.now();
-          const itemTime = (parsed as any).timestamp;
-          
-          if (now - itemTime > options.ttl) {
-            // Item has expired, remove it
-            window.localStorage.removeItem(key);
-            setStoredValue(initialValue);
+        if (options?.ttl) {
+          // Check if parsed object fits StorageItem shape
+          if (parsed && typeof parsed === 'object' && 'timestamp' in parsed && 'data' in parsed) {
+            const storageItem = parsed as StorageItem<T>; // Safe cast after check
+            const now = Date.now();
+
+            if (now - storageItem.timestamp > options.ttl) {
+              // Item has expired, remove it
+              window.localStorage.removeItem(key);
+              setStoredValue(initialValue);
+            } else {
+              // Item is still valid
+              setStoredValue(storageItem.data);
+            }
           } else {
-            // Item is still valid, use the data
-            setStoredValue((parsed as any).data);
+            // If structure doesn't match expected TTL format but TTL requested, fall back or treat as invalid
+            // Here assuming if TTL is set, we strictly expect StorageItem
+            setStoredValue(initialValue);
           }
         } else {
+          // No TTL, just use the parsed value
           setStoredValue(parsed);
         }
       }
@@ -67,18 +81,17 @@ export function useLocalStorage<T>(
         const valueToStore = value instanceof Function ? value(storedValue) : value;
         setStoredValue(valueToStore);
 
-        // Prepare data for storage
-        let dataToStore: any = valueToStore;
-        
+        let finalValueToStore: T | StorageItem<T> = valueToStore;
+
         // Add timestamp if TTL is specified
         if (options?.ttl) {
-          dataToStore = {
+          finalValueToStore = {
             data: valueToStore,
             timestamp: Date.now(),
           };
         }
 
-        window.localStorage.setItem(key, serialize(dataToStore));
+        window.localStorage.setItem(key, serialize(finalValueToStore as T));
       } catch (error) {
         console.error(`Error setting localStorage key "${key}":`, error);
       }
@@ -121,11 +134,15 @@ export const useUserPreferences = () => {
 };
 
 export const useRecentSearches = () => {
-  return useLocalStorage('recent-searches', [] as Array<{
-    summonerName: string;
-    region: string;
-    timestamp: number;
-  }>, {
-    ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
-  });
+  return useLocalStorage(
+    'recent-searches',
+    [] as Array<{
+      summonerName: string;
+      region: string;
+      timestamp: number;
+    }>,
+    {
+      ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
+    }
+  );
 };

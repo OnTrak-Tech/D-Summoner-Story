@@ -31,9 +31,7 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ error, onRetry, onReset }) 
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
         <div className="text-center mb-6">
           <div className="text-6xl mb-4">😵</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Oops! Something went wrong
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Oops! Something went wrong</h1>
           <p className="text-gray-600">
             We encountered an unexpected error. Don't worry, it's not your fault!
           </p>
@@ -41,17 +39,11 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ error, onRetry, onReset }) 
 
         {isDevelopment && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <h3 className="text-sm font-medium text-red-800 mb-2">
-              Development Error Details:
-            </h3>
-            <p className="text-xs text-red-700 font-mono break-all">
-              {error.message}
-            </p>
+            <h3 className="text-sm font-medium text-red-800 mb-2">Development Error Details:</h3>
+            <p className="text-xs text-red-700 font-mono break-all">{error.message}</p>
             {error.stack && (
               <details className="mt-2">
-                <summary className="text-xs text-red-600 cursor-pointer">
-                  Stack Trace
-                </summary>
+                <summary className="text-xs text-red-600 cursor-pointer">Stack Trace</summary>
                 <pre className="text-xs text-red-600 mt-1 overflow-auto max-h-32">
                   {error.stack}
                 </pre>
@@ -69,7 +61,7 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ error, onRetry, onReset }) 
               Try Again
             </button>
           )}
-          
+
           {onReset && (
             <button
               onClick={onReset}
@@ -78,7 +70,7 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ error, onRetry, onReset }) 
               Start Over
             </button>
           )}
-          
+
           <button
             onClick={() => window.location.reload()}
             className="w-full py-3 px-4 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300 transition-colors"
@@ -148,7 +140,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       error: null,
       errorInfo: null,
     });
-    
+
     // Reset the application state if needed
     // This could involve clearing localStorage, resetting global state, etc.
     localStorage.clear();
@@ -208,6 +200,6 @@ export const withErrorBoundary = <P extends object>(
   );
 
   WrappedComponent.displayName = `withErrorBoundary(${Component.displayName || Component.name})`;
-  
+
   return WrappedComponent;
 };

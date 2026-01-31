@@ -9,8 +9,8 @@ interface LoadingIndicatorProps {
   progress: number; // 0-100
   message: string;
   step: 'authenticating' | 'fetching' | 'processing' | 'generating';
-  summonerName?: string;
-  estimatedTimeRemaining?: number; 
+  playerName?: string;
+  estimatedTimeRemaining?: number;
 }
 
 interface StepInfo {
@@ -24,7 +24,7 @@ const STEP_INFO: Record<LoadingIndicatorProps['step'], StepInfo> = {
   authenticating: {
     icon: '🔐',
     title: 'Authenticating',
-    description: 'Verifying your summoner information',
+    description: 'Verifying your player information',
     color: 'orange',
   },
   fetching: {
@@ -60,7 +60,7 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
   progress,
   message,
   step,
-  summonerName,
+  playerName,
   estimatedTimeRemaining,
 }) => {
   const stepInfo = STEP_INFO[step];
@@ -71,15 +71,11 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
       <div className="bg-white rounded-lg shadow-lg p-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="text-4xl mb-3 animate-bounce">
-            {stepInfo.icon}
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            {stepInfo.title}
-          </h2>
-          {summonerName && (
+          <div className="text-4xl mb-3 animate-bounce">{stepInfo.icon}</div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">{stepInfo.title}</h2>
+          {playerName && (
             <p className="text-lg text-gray-600">
-              Analyzing <span className="font-semibold text-blue-600">{summonerName}</span>'s year
+              Analyzing <span className="font-semibold text-blue-600">{playerName}</span>'s year
             </p>
           )}
         </div>
@@ -87,14 +83,12 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
         {/* Progress Bar */}
         <div className="mb-6">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-gray-700">
-              Progress
-            </span>
+            <span className="text-sm font-medium text-gray-700">Progress</span>
             <span className="text-sm font-medium text-gray-700">
               {Math.round(progressPercentage)}%
             </span>
           </div>
-          
+
           <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
             <div
               className={`
@@ -109,19 +103,17 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
 
         {/* Current Step Info */}
         <div className="mb-6">
-          <div className={`
+          <div
+            className={`
             p-4 rounded-lg border-l-4 
             ${stepInfo.color === 'blue' ? 'bg-blue-50 border-blue-400' : ''}
             ${stepInfo.color === 'purple' ? 'bg-purple-50 border-purple-400' : ''}
             ${stepInfo.color === 'yellow' ? 'bg-yellow-50 border-yellow-400' : ''}
             ${stepInfo.color === 'green' ? 'bg-green-50 border-green-400' : ''}
-          `}>
-            <p className="font-medium text-gray-900 mb-1">
-              {message}
-            </p>
-            <p className="text-sm text-gray-600">
-              {stepInfo.description}
-            </p>
+          `}
+          >
+            <p className="font-medium text-gray-900 mb-1">{message}</p>
+            <p className="text-sm text-gray-600">{stepInfo.description}</p>
           </div>
         </div>
 
@@ -138,26 +130,32 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
         <div className="flex justify-between items-center">
           {Object.entries(STEP_INFO).map(([stepKey, info], index) => {
             const isActive = stepKey === step;
-            const isCompleted = Object.keys(STEP_INFO).indexOf(stepKey) < Object.keys(STEP_INFO).indexOf(step);
-            
+            const isCompleted =
+              Object.keys(STEP_INFO).indexOf(stepKey) < Object.keys(STEP_INFO).indexOf(step);
+
             return (
               <div key={stepKey} className="flex flex-col items-center">
-                <div className={`
+                <div
+                  className={`
                   w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
                   transition-all duration-300
-                  ${isCompleted 
-                    ? 'bg-green-500 text-white' 
-                    : isActive 
-                      ? 'bg-blue-500 text-white animate-pulse' 
-                      : 'bg-gray-200 text-gray-500'
+                  ${
+                    isCompleted
+                      ? 'bg-green-500 text-white'
+                      : isActive
+                        ? 'bg-blue-500 text-white animate-pulse'
+                        : 'bg-gray-200 text-gray-500'
                   }
-                `}>
+                `}
+                >
                   {isCompleted ? '✓' : index + 1}
                 </div>
-                <span className={`
+                <span
+                  className={`
                   text-xs mt-1 text-center max-w-16
                   ${isActive ? 'text-blue-600 font-medium' : 'text-gray-500'}
-                `}>
+                `}
+                >
                   {info.title}
                 </span>
               </div>
@@ -167,14 +165,16 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
 
         {/* Fun Facts */}
         <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-          <h3 className="text-sm font-medium text-gray-900 mb-2">
-            💡 Did you know?
-          </h3>
+          <h3 className="text-sm font-medium text-gray-900 mb-2">💡 Did you know?</h3>
           <p className="text-sm text-gray-600">
-            {step === 'authenticating' && "We're securely connecting to Riot Games' servers to verify your account."}
-            {step === 'fetching' && "We can analyze up to 1000 of your most recent matches to create comprehensive insights."}
-            {step === 'processing' && "Our algorithms calculate over 50 different statistics to understand your playstyle."}
-            {step === 'generating' && "AI is crafting a personalized narrative that captures your unique League journey this year."}
+            {step === 'authenticating' &&
+              "We're securely connecting to Riot Games' servers to verify your account."}
+            {step === 'fetching' &&
+              'We can analyze up to 1000 of your most recent matches to create comprehensive insights.'}
+            {step === 'processing' &&
+              'Our algorithms calculate over 50 different statistics to understand your playstyle.'}
+            {step === 'generating' &&
+              'AI is crafting a personalized narrative that captures your unique League journey this year.'}
           </p>
         </div>
 

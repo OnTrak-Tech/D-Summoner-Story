@@ -18,12 +18,7 @@ import {
   Legend,
   Filler,
 } from 'chart.js';
-import {
-  Line,
-  Bar,
-  Doughnut,
-  Radar,
-} from 'react-chartjs-2';
+import { Line, Bar, Doughnut, Radar } from 'react-chartjs-2';
 
 // Register Chart.js components
 ChartJS.register(
@@ -93,12 +88,14 @@ export const StatisticsCharts: React.FC<StatisticsChartsProps> = ({
       chart_type: 'doughnut',
       data: {
         labels: ['Wins', 'Losses'],
-        datasets: [{
-          data: [statistics.total_wins, statistics.total_losses],
-          backgroundColor: ['#10B981', '#EF4444'],
-          borderWidth: 0,
-          hoverBackgroundColor: ['#059669', '#DC2626'],
-        }],
+        datasets: [
+          {
+            data: [statistics.total_wins, statistics.total_losses],
+            backgroundColor: ['#10B981', '#EF4444'],
+            borderWidth: 0,
+            hoverBackgroundColor: ['#059669', '#DC2626'],
+          },
+        ],
       },
       options: {
         ...defaultChartOptions,
@@ -115,11 +112,11 @@ export const StatisticsCharts: React.FC<StatisticsChartsProps> = ({
 
     // 2. Monthly Performance Line Chart
     if (statistics.monthly_trends && statistics.monthly_trends.length > 0) {
-      const months = statistics.monthly_trends.map(trend => 
-        `${trend.month.slice(0, 3)} ${trend.year}`
+      const months = statistics.monthly_trends.map(
+        (trend) => `${trend.month.slice(0, 3)} ${trend.year}`
       );
-      const winRates = statistics.monthly_trends.map(trend => trend.win_rate);
-      const kdas = statistics.monthly_trends.map(trend => trend.avg_kda);
+      const winRates = statistics.monthly_trends.map((trend) => trend.win_rate);
+      const kdas = statistics.monthly_trends.map((trend) => trend.avg_kda);
 
       charts.push({
         chart_type: 'line',
@@ -193,9 +190,9 @@ export const StatisticsCharts: React.FC<StatisticsChartsProps> = ({
     // 3. Champion Performance Bar Chart
     if (statistics.champion_stats && statistics.champion_stats.length > 0) {
       const topChampions = statistics.champion_stats.slice(0, 5);
-      const championNames = topChampions.map(champ => champ.champion_name);
-      const gamesPlayed = topChampions.map(champ => champ.games_played);
-      const winRates = topChampions.map(champ => champ.win_rate);
+      const championNames = topChampions.map((champ) => champ.champion_name);
+      const gamesPlayed = topChampions.map((champ) => champ.games_played);
+      const winRates = topChampions.map((champ) => champ.win_rate);
 
       charts.push({
         chart_type: 'bar',
@@ -273,16 +270,18 @@ export const StatisticsCharts: React.FC<StatisticsChartsProps> = ({
       chart_type: 'radar',
       data: {
         labels: ['Activity', 'Win Rate', 'KDA', 'Diversity', 'Consistency'],
-        datasets: [{
-          label: 'Performance Profile',
-          data: performanceMetrics,
-          backgroundColor: 'rgba(139, 92, 246, 0.2)',
-          borderColor: 'rgba(139, 92, 246, 1)',
-          pointBackgroundColor: 'rgba(139, 92, 246, 1)',
-          pointBorderColor: '#fff',
-          pointHoverBackgroundColor: '#fff',
-          pointHoverBorderColor: 'rgba(139, 92, 246, 1)',
-        }],
+        datasets: [
+          {
+            label: 'Performance Profile',
+            data: performanceMetrics,
+            backgroundColor: 'rgba(139, 92, 246, 0.2)',
+            borderColor: 'rgba(139, 92, 246, 1)',
+            pointBackgroundColor: 'rgba(139, 92, 246, 1)',
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: 'rgba(139, 92, 246, 1)',
+          },
+        ],
       },
       options: {
         ...defaultChartOptions,
@@ -339,9 +338,7 @@ export const StatisticsCharts: React.FC<StatisticsChartsProps> = ({
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h2 className="text-3xl font-bold text-slate-900 mb-2">
-          📊 Performance Analytics
-        </h2>
+        <h2 className="text-3xl font-bold text-slate-900 mb-2">📊 Performance Analytics</h2>
         <p className="text-slate-600 text-lg">
           Interactive visualizations of your League of Legends performance
         </p>
@@ -353,18 +350,14 @@ export const StatisticsCharts: React.FC<StatisticsChartsProps> = ({
             key={index}
             className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow"
           >
-            <div className="h-80">
-              {renderChart(chart, index)}
-            </div>
+            <div className="h-80">{renderChart(chart, index)}</div>
           </div>
         ))}
       </div>
 
       {/* Chart Legend and Info */}
       <div className="bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-slate-900 mb-3">
-          📈 Chart Information
-        </h3>
+        <h3 className="text-lg font-semibold text-slate-900 mb-3">📈 Chart Information</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-slate-700">
           <div>
             <strong>Win Rate Chart:</strong> Shows your wins vs losses distribution

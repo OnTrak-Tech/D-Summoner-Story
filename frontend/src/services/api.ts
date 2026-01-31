@@ -32,6 +32,41 @@ export interface FetchResponse {
   message: string;
 }
 
+export interface PersonalityProfile {
+  type: string;
+  description: string;
+  traits: string[];
+}
+
+export interface ChampionSuggestion {
+  champion: string;
+  confidence: number;
+  reason: string;
+}
+
+export interface SeasonPrediction {
+  predicted_rank: string;
+  timeline: string;
+  confidence: number;
+  key_factors: string[];
+}
+
+export interface RivalAnalysis {
+  overall_ranking: string;
+  comparison_group: string;
+  strengths: string[];
+  weaknesses: string[];
+}
+
+export interface HighlightMatch {
+  champion: string;
+  kills: number;
+  deaths: number;
+  assists: number;
+  kda: number;
+  win: boolean;
+}
+
 export interface JobStatus {
   job_id: string;
   status: 'pending' | 'fetching' | 'processing' | 'generating' | 'completed' | 'failed';
@@ -67,6 +102,7 @@ export interface RecapData {
       year: number;
       win_rate: number;
       avg_kda: number;
+      games: number;
     }>;
   };
   visualizations: Array<{
@@ -78,6 +114,16 @@ export interface RecapData {
   achievements: string[];
   fun_facts: string[];
   recommendations: string[];
+
+  // Enhanced Fields
+  personality_profile?: PersonalityProfile;
+  champion_suggestions?: ChampionSuggestion[];
+  next_season_prediction?: SeasonPrediction;
+  rival_analysis?: RivalAnalysis;
+  highlight_matches?: HighlightMatch[];
+  champion_improvements?: string[];
+  behavioral_patterns?: string[];
+
   share_url?: string;
   generated_at: string;
   served_at: string;
@@ -107,19 +153,18 @@ class APIService {
 
   constructor() {
     // Get API endpoint from environment or use default
-    this.baseURL = (import.meta.env?.VITE_API_ENDPOINT as string) || 'https://your-api-gateway-url.execute-api.us-east-1.amazonaws.com';
+    this.baseURL =
+      (import.meta.env?.VITE_API_ENDPOINT as string) ||
+      'https://your-api-gateway-url.execute-api.us-east-1.amazonaws.com';
     this.timeout = 30000; // 30 seconds
   }
 
-  private async makeRequest<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
+  private async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-    
+
     const config: RequestInit = {
       signal: controller.signal,
       headers: {
@@ -128,12 +173,11 @@ class APIService {
       },
       ...options,
     };
-    
-    try {
 
+    try {
       const response = await fetch(url, config);
       clearTimeout(timeoutId);
-      
+
       if (!response.ok) {
         let errorData;
         try {
@@ -141,7 +185,7 @@ class APIService {
         } catch {
           errorData = { message: 'Unknown error occurred' };
         }
-        
+
         throw new APIError(
           errorData.message || `HTTP ${response.status}`,
           response.status,
@@ -156,7 +200,7 @@ class APIService {
       if (error instanceof APIError) {
         throw error;
       }
-      
+
       // Handle network errors, timeouts, etc.
       throw new APIError(
         error instanceof Error ? error.message : 'Network error occurred',
@@ -223,36 +267,35 @@ class APIService {
     intervalMs: number = 2000
   ): Promise<JobStatus> {
     let attempts = 0;
-    
+
     while (attempts < maxAttempts) {
       try {
         const status = await this.getJobStatus(jobId);
-        
+
         if (onProgress) {
           onProgress(status);
         }
-        
+
         if (status.status === 'completed' || status.status === 'failed') {
           return status;
         }
-        
+
         // Wait before next poll
-        await new Promise(resolve => setTimeout(resolve, intervalMs));
+        await new Promise((resolve) => setTimeout(resolve, intervalMs));
         attempts++;
-        
       } catch (error) {
         console.error('Error polling job status:', error);
         attempts++;
-        
+
         if (attempts >= maxAttempts) {
           throw error;
         }
-        
+
         // Wait before retry
-        await new Promise(resolve => setTimeout(resolve, intervalMs));
+        await new Promise((resolve) => setTimeout(resolve, intervalMs));
       }
     }
-    
+
     throw new APIError('Job status polling timed out', 408, 'TIMEOUT');
   }
 }
@@ -262,28 +305,43 @@ export const apiService = new APIService();
 
 // Export utility functions
 export const isValidRegion = (region: string): boolean => {
-  const validRegions = ['na1', 'euw1', 'eun1', 'kr', 'br1', 'la1', 'la2', 'oc1', 'ru', 'tr1', 'jp1', 'sg2', 'tw2', 'vn2'];
+  const validRegions = [
+    'na1',
+    'euw1',
+    'eun1',
+    'kr',
+    'br1',
+    'la1',
+    'la2',
+    'oc1',
+    'ru',
+    'tr1',
+    'jp1',
+    'sg2',
+    'tw2',
+    'vn2',
+  ];
   return validRegions.includes(region.toLowerCase());
 };
 
 export const formatRegionDisplay = (region: string): string => {
   const regionMap: Record<string, string> = {
-    'na1': 'North America',
-    'euw1': 'Europe West',
-    'eun1': 'Europe Nordic & East',
-    'kr': 'Korea',
-    'br1': 'Brazil',
-    'la1': 'Latin America North',
-    'la2': 'Latin America South',
-    'oc1': 'Oceania',
-    'ru': 'Russia',
-    'tr1': 'Turkey',
-    'jp1': 'Japan',
-    'sg2': 'Singapore',
-    'tw2': 'Taiwan',
-    'vn2': 'Vietnam'
+    na1: 'North America',
+    euw1: 'Europe West',
+    eun1: 'Europe Nordic & East',
+    kr: 'Korea',
+    br1: 'Brazil',
+    la1: 'Latin America North',
+    la2: 'Latin America South',
+    oc1: 'Oceania',
+    ru: 'Russia',
+    tr1: 'Turkey',
+    jp1: 'Japan',
+    sg2: 'Singapore',
+    tw2: 'Taiwan',
+    vn2: 'Vietnam',
   };
-  
+
   return regionMap[region.toLowerCase()] || region.toUpperCase();
 };
 

@@ -64,9 +64,7 @@ export const useDebounce = <T>(value: T, delay: number): T => {
 };
 
 // Hook for intersection observer (useful for animations and lazy loading)
-export const useIntersectionObserver = (
-  options: IntersectionObserverInit = {}
-) => {
+export const useIntersectionObserver = (options: IntersectionObserverInit = {}) => {
   const [isIntersecting, setIsIntersecting] = useState(false);
   const [hasIntersected, setHasIntersected] = useState(false);
   const elementRef = useRef<HTMLElement>(null);
@@ -101,18 +99,21 @@ export const useIntersectionObserver = (
 export const useComponentPreloader = () => {
   const preloadedComponents = useRef(new Set<string>());
 
-  const preloadComponent = useCallback(async (componentName: string, loader: () => Promise<any>) => {
-    if (preloadedComponents.current.has(componentName)) {
-      return;
-    }
+  const preloadComponent = useCallback(
+    async (componentName: string, loader: () => Promise<any>) => {
+      if (preloadedComponents.current.has(componentName)) {
+        return;
+      }
 
-    try {
-      await loader();
-      preloadedComponents.current.add(componentName);
-    } catch (error) {
-      console.warn(`Failed to preload component ${componentName}:`, error);
-    }
-  }, []);
+      try {
+        await loader();
+        preloadedComponents.current.add(componentName);
+      } catch (error) {
+        console.warn(`Failed to preload component ${componentName}:`, error);
+      }
+    },
+    []
+  );
 
   return { preloadComponent };
 };
@@ -144,9 +145,9 @@ export const useShallowMemo = <T extends Record<string, any>>(obj: T): T => {
   const ref = useRef<T>(obj);
 
   // Shallow comparison
-  const hasChanged = Object.keys(obj).some(
-    key => obj[key] !== ref.current[key]
-  ) || Object.keys(ref.current).length !== Object.keys(obj).length;
+  const hasChanged =
+    Object.keys(obj).some((key) => obj[key] !== ref.current[key]) ||
+    Object.keys(ref.current).length !== Object.keys(obj).length;
 
   if (hasChanged) {
     ref.current = obj;
