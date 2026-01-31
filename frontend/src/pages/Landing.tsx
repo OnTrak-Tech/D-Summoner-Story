@@ -30,14 +30,22 @@ export const Landing: React.FC = () => {
 
                     {/* Platform Logos */}
                     <div className="flex justify-center items-center space-x-8 mb-10">
-                        <div className="flex items-center space-x-2 text-gray-400">
-                            <span className="text-3xl">🎮</span>
-                            <span className="font-semibold">Riot Games</span>
+                        {/* Riot Games Logo */}
+                        <div className="flex items-center">
+                            <img
+                                src="/002_RG_2021_FULL_LOCKUP_RED.png"
+                                alt="Riot Games"
+                                className="h-10 object-contain"
+                            />
                         </div>
-                        <div className="w-px h-8 bg-gray-700" />
-                        <div className="flex items-center space-x-2 text-gray-400">
-                            <span className="text-3xl">🏆</span>
-                            <span className="font-semibold">Fortnite</span>
+                        <div className="w-px h-10 bg-gray-600" />
+                        {/* Fortnite Logo */}
+                        <div className="flex items-center">
+                            <img
+                                src="/fortnite-seeklogo.png"
+                                alt="Fortnite"
+                                className="h-14 object-contain"
+                            />
                         </div>
                     </div>
 

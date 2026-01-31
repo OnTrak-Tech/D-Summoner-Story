@@ -6,7 +6,6 @@ import { useAuth } from '../contexts/AuthContext';
 interface PlatformConfig {
     id: string;
     name: string;
-    icon: string;
     description: string;
     inputLabel: string;
     inputPlaceholder: string;
@@ -17,7 +16,6 @@ const platforms: PlatformConfig[] = [
     {
         id: 'riot',
         name: 'Riot Games',
-        icon: '🎮',
         description: 'League of Legends, Valorant, TFT',
         inputLabel: 'Riot ID',
         inputPlaceholder: 'GameName#TAG',
@@ -26,13 +24,24 @@ const platforms: PlatformConfig[] = [
     {
         id: 'fortnite',
         name: 'Fortnite',
-        icon: '🏆',
         description: 'Battle Royale stats',
         inputLabel: 'Epic Username',
         inputPlaceholder: 'YourEpicName',
         color: 'from-purple-500 to-blue-500',
     },
 ];
+
+// Platform logo paths
+const getPlatformLogo = (id: string) => {
+    switch (id) {
+        case 'riot':
+            return <img src="/002_RG_2021_FULL_LOCKUP_RED.png" alt="Riot Games" className="h-12 object-contain" />;
+        case 'fortnite':
+            return <img src="/fortnite-seeklogo.png" alt="Fortnite" className="h-16 object-contain" />;
+        default:
+            return null;
+    }
+};
 
 export const Connect: React.FC = () => {
     const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
@@ -54,7 +63,6 @@ export const Connect: React.FC = () => {
             const token = await getIdToken();
             if (!token) throw new Error('Not authenticated');
 
-            const platform = platforms.find((p) => p.id === selectedPlatform);
             const endpoint = selectedPlatform === 'riot' ? 'auth/riot' : 'auth/fortnite';
 
             const body =
@@ -116,17 +124,17 @@ export const Connect: React.FC = () => {
                                     key={platform.id}
                                     onClick={() => !isConnected && setSelectedPlatform(platform.id)}
                                     disabled={isConnected}
-                                    className={`relative p-6 rounded-2xl border-2 transition-all ${isConnected
-                                            ? 'border-green-500 bg-green-500/10'
-                                            : isSelected
-                                                ? 'border-purple-500 bg-purple-500/10'
-                                                : 'border-white/10 bg-white/5 hover:border-white/30'
+                                    className={`relative p-6 rounded-2xl border-2 transition-all text-left ${isConnected
+                                        ? 'border-green-500 bg-green-500/10'
+                                        : isSelected
+                                            ? 'border-purple-500 bg-purple-500/10'
+                                            : 'border-white/10 bg-white/5 hover:border-white/30'
                                         }`}
                                 >
                                     {isConnected && (
                                         <div className="absolute top-3 right-3 text-green-400">✓</div>
                                     )}
-                                    <div className="text-4xl mb-3">{platform.icon}</div>
+                                    <div className="mb-3">{getPlatformLogo(platform.id)}</div>
                                     <h3 className="text-xl font-bold mb-1">{platform.name}</h3>
                                     <p className="text-sm text-gray-400">{platform.description}</p>
                                 </button>
