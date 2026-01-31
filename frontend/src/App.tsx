@@ -8,51 +8,42 @@ import { AuthProvider } from './contexts/AuthContext';
 // Pages
 import { Landing, Auth, Connect, Dashboard } from './pages';
 
-// Legacy Routes (for backward compatibility)
-import { LoadingPage } from './routes/LoadingPage';
-import { RecapPage } from './routes/RecapPage';
-import { ErrorPage } from './routes/ErrorPage';
-
 // Styles
 import './index.css';
 
+// Error fallback component
+const ErrorFallback: React.FC = () => (
+  <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white">
+    <div className="text-center">
+      <h1 className="text-4xl font-bold mb-4">Oops!</h1>
+      <p className="text-gray-400 mb-6">Something went wrong.</p>
+      <a href="/" className="px-4 py-2 bg-purple-600 rounded-lg hover:bg-purple-500">
+        Go Home
+      </a>
+    </div>
+  </div>
+);
+
 const router = createBrowserRouter([
-  // New MVP Routes
   {
     path: '/',
     element: <Landing />,
-    errorElement: <ErrorPage />,
+    errorElement: <ErrorFallback />,
   },
   {
     path: '/auth',
     element: <Auth />,
-    errorElement: <ErrorPage />,
+    errorElement: <ErrorFallback />,
   },
   {
     path: '/connect',
     element: <Connect />,
-    errorElement: <ErrorPage />,
+    errorElement: <ErrorFallback />,
   },
   {
     path: '/dashboard',
     element: <Dashboard />,
-    errorElement: <ErrorPage />,
-  },
-  // Legacy Routes (backward compatibility)
-  {
-    path: '/loading/:platform/:region/:summonerName',
-    element: <LoadingPage />,
-    errorElement: <ErrorPage />,
-  },
-  {
-    path: '/recap/:sessionId',
-    element: <RecapPage />,
-    errorElement: <ErrorPage />,
-  },
-  {
-    path: '/recap/:timeframe',
-    element: <RecapPage />,
-    errorElement: <ErrorPage />,
+    errorElement: <ErrorFallback />,
   },
 ]);
 
@@ -61,7 +52,7 @@ const App: React.FC = () => {
     <React.StrictMode>
       <ErrorBoundary
         onError={(error, errorInfo) => {
-          console.error('OnTrak System Error:', error, errorInfo);
+          console.error('System Error:', error, errorInfo);
         }}
       >
         <AuthProvider>
